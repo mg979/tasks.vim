@@ -7,8 +7,93 @@
 " Modified:    mar 08 settembre 2020 01:58:09
 " ========================================================================///
 
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Constructors
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Tasks can be defined at global level or per project. Project-local tasks
+" override global tasks with the same name.
+"
+" When one tries to run a task, the global file and the local file are parsed
+" and merged. The parsed tasks are stored in the global table g:tasks.
+"
+" When a tasks file (global or local) is edited and saved, it is invalidated,
+" so that the next time that one tries to run a command, invalidated files
+" will be parsed again.
+"
+" The g:tasks table has the following structure:
+"
+"   g:tasks = {
+"     global = {
+"         tasks,        DICT
+"         invalidated,  BOOL
+"     },
+"     project_1 = {
+"         tasks,        DICT
+"         invalidated,  BOOL
+"         profile,      STRING
+"     },
+"     ...
+"   }
+"
+" No profile can be defined for the global tasks. It's a project thing.
+" Elements in x.tasks have the following structure:
+"
+"   taskname = {
+"     local,            BOOL
+"     fields,           DICT
+"   }
+"
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+let g:tasks = {}
+
+function! s:new_task(local) abort
+    let t = {}
+    let t.local = a:local
+    let t.fields = {}
+    return t
+endfunction
+
+
+function! s:new_project(local) abort
+    let p = { 'tasks': {}, 'invalidated': 0 }
+    if a:local
+        let p.profile = 'default'
+    endif
+    return p
+endfunction
+
+
 function! async#tasks#get() abort
-    return s:merge_configs(s:get_global_ini(), s:get_local_ini())
+    return extend(async#tasks#global(0), async#tasks#project(0))
+endfunction
+
+
+function! async#tasks#project(reload) abort
+    let f = s:get_local_ini()
+    if !filereadable(f)
+        return {}
+    endif
+    let prj = s:project_name()
+    if !a:reload && has_key(g:tasks, prj) && !g:tasks[prj].invalidated
+        return g:tasks[prj]
+    endif
+    let g:tasks[prj] = s:parse(f, 1)
+    return g:tasks[prj]
+endfunction
+
+
+function! async#tasks#global(reload) abort
+    let f = s:get_global_ini()
+    if !filereadable(f)
+        return {}
+    endif
+    if !a:reload && has_key(g:tasks, 'global') && !g:tasks.global.invalidated
+        return g:tasks.global
+    endif
+    let g:tasks.global = s:parse(f, 0)
+    return g:tasks.global
 endfunction
 
 
@@ -16,39 +101,39 @@ endfunction
 " Parse configuration files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-""
-" s:merge_configs: merge global and local configuration files
-""
-function! s:merge_configs(global, local) abort
-    return extend(s:parse(a:global), s:parse(a:local))
-endfunction
-
-
-function! s:parse(path) abort
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Function: s:parse
+" Parse and validate a tasks file.
+"
+" @param path:     path of the tasks file
+" @param is_local: true if it's project-local tasks file
+" @return: the validated task
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+function! s:parse(path, is_local) abort
     if a:path == ''
         return {}
     endif
-    let p = s:patterns
     let lines = readfile(a:path)
     let current = v:null
-    let tasks = {}
+    let p = s:new_project(a:is_local)
     for line in lines
-        if match(line, '^#') == 0
+        if match(line, '^#') == 0 || empty(line)
             continue
         elseif match(line, s:taskpat) == 1
             let task = matchstr(line, s:taskpat)
-            let tasks[task] = {}
-            let current = tasks[task]
+            let p.tasks[task] = s:new_task(a:is_local)
+            let current = p.tasks[task]
         elseif current isnot v:null
             for pat in values(s:patterns)
                 if match(line, pat) == 0
                     let item = matchstr(line, pat)
-                    let current[item] = substitute(line, item . '=', '', '')
+                    let current.fields[item] = substitute(line, item . '=', '', '')
                 endif
             endfor
         endif
     endfor
-    return filter(tasks, function('s:validate_task'))
+    call filter(p.tasks, function('s:validate_task'))
+    return p
 endfunction
 
 
@@ -58,16 +143,16 @@ endfunction
 
 function! s:validate_task(name, values) abort
     let [n, v] = [a:name, a:values]
-    if s:failing_conditions(n) | return v:false | endif
-    if s:wrong_profile(n)      | return v:false | endif
-    if s:no_valid_entries(v)   | return v:false | endif
+    if s:failing_conditions(n)      | return v:false | endif
+    if s:wrong_profile(n)           | return v:false | endif
+    if s:no_valid_fields(v.fields)  | return v:false | endif
     return v:true
 endfunction
 
 
-function! s:no_valid_entries(entries) abort
-    call filter(a:entries, function("s:valid_entries"))
-    return empty(a:entries)
+function! s:no_valid_fields(fields) abort
+    call filter(a:fields, function("s:valid_fields"))
+    return empty(a:fields)
 endfunction
 
 
@@ -110,28 +195,34 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Validate entries
+" Validate fields
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! s:valid_entries(key, val) abort
-    for e in keys(s:entries)
+function! s:valid_fields(key, val) abort
+    for e in keys(s:fields)
         if a:key =~ e
             let l:key = e
             break
         endif
     endfor
     return !exists('l:key') ? v:false
-                \           : s:entries[l:key](a:key, a:val)
+                \           : s:fields[l:key](a:key, a:val)
 endfunction
 
 
 function! s:validate_output(key, val) abort
-    for m in ['buffer', 'cmdline', 'terminal', 'quickfix']
-        if a:val =~ m
-            return a:val == m
-        endif
-    endfor
-    return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
+    if a:val =~ 'cmdline'
+        return a:val == 'cmdline'
+    elseif a:val =~ 'terminal'
+        return a:val == 'terminal'
+    elseif a:val =~ 'buffer'
+        return a:val =~ '^\vbuffer(:('.s:pospat.'))?(:\d+)?$'
+    elseif a:val =~ 'external'
+        return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
+    elseif a:val =~ 'quickfix'
+        let pat = '(:(('.s:optspat.'),?)+)?$'
+        return a:val =~ '^\vquickfix' . pat
+    endif
 endfunction
 
 
@@ -141,7 +232,7 @@ endfunction
 
 function! s:valid_filetype(key) abort
     let fts = split(substitute(a:key, '.*:', '', ''), ',')
-    return index(fts, split(&ft, '\.')[0]) >= 0
+    return index(fts, s:ft()) >= 0
 endfunction
 
 
@@ -162,23 +253,47 @@ endfunction
 " Tasks profiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! async#tasks#get_profile(prj) abort
-    return has_key(g:tasks, a:prj) ? g:tasks[a:prj].profile
-                \                  : v:null
+""
+" echo current profile in the command line
+""
+fun! async#tasks#current_profile() abort
+    let profile = async#tasks#get_profile()
+    redraw
+    if profile == v:null
+        echon s:badge() 'not a managed project'
+    else
+        echon s:badge() 'current profile is: ' s:color(profile)
+    endif
+endfun
+
+""
+" return current profile, or v:null
+""
+function! async#tasks#get_profile() abort
+    let p = async#tasks#project(0)
+    return !empty(p) ? p.profile : v:null
 endfunction
 
-function! async#tasks#set_profile(prj, profile) abort
-    if has_key(g:tasks, a:prj)
-        let g:tasks[a:prj].profile = a:profile
+""
+" set profile to a new value
+""
+function! async#tasks#set_profile(profile) abort
+    let p = async#tasks#project(0)
+    if !empty(p)
+        let p.profile = a:profile
         return v:true
     else
         return v:false
     endif
 endfunction
 
+""
+" reset project profile to default
+""
 function! async#tasks#unset_profile(prj) abort
-    if has_key(g:tasks, a:prj)
-        unlet g:tasks[a:prj].profile
+    let p = async#tasks#project()
+    if !empty(p)
+        let p.profile = 'default'
         return v:true
     else
         return v:false
@@ -193,7 +308,7 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""
-" s:get_global_ini: return the path for the global configuration
+" the path for the global configuration
 ""
 function! s:get_global_ini() abort
     if exists('s:global_ini') && s:global_ini != ''
@@ -219,11 +334,10 @@ function! s:get_global_ini() abort
 endfunction
 
 ""
-" s:get_local_ini: return the path for the project configuration
+" the path for the project configuration
 ""
 function! s:get_local_ini() abort
-    let f = get(g:, 'async_taskfile_local', '.tasks')
-    return filereadable(f) ? f : ''
+    return get(g:, 'async_taskfile_local', '.tasks')
 endfunction
 
 
@@ -232,9 +346,32 @@ endfunction
 " Helpers
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+""
+" the basename of the working directory
+""
 function! s:project_name() abort
     return fnamemodify(getcwd(), ':t')
 endfunction
+
+""
+" echo colored text in the command line
+""
+fun! s:color(txt) abort
+    echohl String | exe 'echon' string(a:txt) | echohl None
+    return ''
+endfun
+
+""
+" badge for messages in the command line
+""
+fun! s:badge() abort
+    echohl Delimiter | echon '[tasks] ' | echohl None
+    return ''
+endfun
+
+fun! s:ft() abort
+    return split(&ft, '\.')[0]
+endfun
 
 
 
@@ -244,14 +381,14 @@ endfunction
 " Patterns and script variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" global index for tasks settings
-let g:tasks = {}
-
 let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
 let s:is_linux   = !s:is_windows && systemlist('uname')[0] == 'Linux'
 let s:is_macos   = !s:is_windows && !s:is_linux && systemlist('uname')[0] == 'Darwin'
 
 let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(:\w+)?(\/(\w+,?)+)?\ze]'
+let s:pospat   = '\<top\>|\<bottom\>|\<left\>|\<right\>'
+let s:optspat  = '\<grep\>|\<locl\>|\<append\>|\<nofocus\>|\<nojump\>|\<noopen\>'
+
 let s:patterns = {
             \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',
             \ 'cwd':          '^cwd\ze=',
@@ -259,21 +396,19 @@ let s:patterns = {
             \ 'compiler':     '^compiler\ze=',
             \ 'success':      '^success\ze=',
             \ 'fail':         '^fail\ze=',
+            \ 'syntax':       '^syntax\ze=',
             \ 'errorformat':  '^errorformat\ze=',
-            \ 'options':      '^options\ze=',
             \}
 
-let s:entries = {
+let s:fields = {
             \ 'command':     function('s:validate_command'),
             \ 'cwd':         { k,v -> v:true },
             \ 'output':      function('s:validate_output'),
             \ 'compiler':    { k,v -> v =~ '\w\+' },
             \ 'success':     { k,v -> v:true },
             \ 'fail':        { k,v -> v:true },
-            \ 'pos':         { k,v -> v =~ '^\(top\|bottom\|left\|right\)$' },
-            \ 'ft':          { k,v -> v =~ '\w\+' },
+            \ 'syntax':      { k,v -> v =~ '\w\+\(\.\w\+\)\?' },
             \ 'errorformat': { k,v -> v:true },
-            \ 'options':     { k,v -> v =~ '\%(\w\+,\?\)\+' },
             \}
 
 
