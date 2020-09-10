@@ -65,8 +65,13 @@ function! s:new_project(local) abort
 endfunction
 
 
-function! async#tasks#get() abort
-    return extend(async#tasks#global(0), async#tasks#project(0))
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Tasks getters
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+function! async#tasks#get(...) abort
+    let reload = a:0 && a:1
+    return extend(async#tasks#global(reload), async#tasks#project(reload))
 endfunction
 
 
@@ -142,6 +147,7 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 function! s:validate_task(name, values) abort
+    " TODO: id/env
     let [n, v] = [a:name, a:values]
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(n)           | return v:false | endif
@@ -162,7 +168,7 @@ function! s:failing_conditions(item) abort
     " if conditions are separated by ',' any of them is enough
     if match(a:item, '/') > 0
         let [_, conds] = split(a:item, '/')
-        if match(conds, '+')
+        if match(conds, '+') >= 0
             for cond in split(conds, '+')
                 if     cond ==? 'linux'   && !s:is_linux   | return v:false
                 elseif cond ==? 'macos'   && !s:is_macos   | return v:false
@@ -170,7 +176,7 @@ function! s:failing_conditions(item) abort
                 elseif !has(cond)                          | return v:false
                 endif
             endfor
-        elseif match(conds, ',') >= 0
+        else
             for cond in split(conds, ',')
                 if has(cond)                              | return v:true
                 elseif cond ==? 'linux'   && s:is_linux   | return v:true
@@ -247,6 +253,105 @@ function! s:validate_command(key, val) abort
     return a:key ==# 'command'
 endfunction
 
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Run task
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+fun! async#tasks#run(args) abort
+    redraw
+    let tasks = async#tasks#get().tasks
+
+    let a = split(a:args)
+    let name = a[0]
+    let args = len(a) > 1 ? join(a[1:]) : ''
+
+    if !has_key(tasks, name)
+        echon s:badge() 'not a valid task'
+        return
+    endif
+
+    let task = tasks[name]
+
+    " TODO: success/fail hooks
+    let cmd = s:choose_command(task)
+    let mode = s:get_cmd_mode(task)
+    let opts = extend({
+                \ 'prg': cmd,
+                \ 'gprg': cmd,
+                \ 'efm': get(task.fields, 'efm', &errorformat),
+                \ 'compiler': get(task.fields, 'compiler', ''),
+                \ 'ft': get(task.fields, 'syntax', ''),
+                \}, s:get_mode_opts(mode))
+    let mode = substitute(mode, ':.*', '', '')
+    if mode == 'quickfix'
+        call async#qfix(args, opts)
+    else
+        call async#cmd(cmd . ' ' . args, mode, opts)
+    endif
+endfun
+
+""
+" Choose the most appropriate command for the task.
+""
+fun! s:choose_command(task) abort
+    let [cp, ft] = ['^command', '\<' . s:ft() . '\>']
+    let cmds = filter(copy(a:task.fields), 'v:key =~ cp')
+    if empty(cmds)
+        return &makeprg
+    elseif len(cmds) == 1
+        return values(cmds)[0]
+    else
+        let cmds = filter(cmds, { k,v -> substitute(k, cp . ':', '', '') =~ ft })
+        return values(cmds)[0]
+    endif
+endfun
+
+""
+" Mode is either 'quickfix', 'buffer', 'terminal', 'external' or 'cmdline'.
+""
+fun! s:get_cmd_mode(task) abort
+    let mode = filter(copy(a:task.fields), { k,v -> k =~ '^output' })
+    return len(mode) > 0 ? values(mode)[0] : 'quickfix'
+endfun
+
+""
+" quickfix, buffer and terminal modes can have extra options after ':'
+""
+fun! s:get_mode_opts(mode) abort
+    if match(a:mode, ':') < 0
+        return {}
+    endif
+    if a:mode =~ '^quickfix'
+        let vals = split(substitute(a:mode, '^quickfix:', '', ''), ',')
+    elseif a:mode =~ '^buffer'
+        let vals = split(substitute(a:mode, '^buffer:', '', ''), ',')
+    elseif a:mode =~ '^terminal'
+        let vals = split(substitute(a:mode, '^terminal:', '', ''), ',')
+    endif
+
+    let can_have_pos = a:mode =~ '^buffer' || a:mode =~ '^terminal'
+    let opts = {}
+
+    for v in vals
+        if can_have_pos && v =~ s:pospat
+            let opts.pos = v
+        elseif a:mode =~ '^quickfix'
+            " all options have a default of 0
+            let opts[v] = 1
+        endif
+    endfor
+    return opts
+endfun
+
+""
+" Command line completion for tasks.
+""
+fun! async#tasks#complete(A, C, P) abort
+    let valid = keys(async#tasks#get().tasks)
+    return filter(sort(valid), 'v:val=~#a:A')
+endfun
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
