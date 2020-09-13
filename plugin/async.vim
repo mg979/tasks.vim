@@ -40,6 +40,4 @@ command! -nargs=1 -bang LGrep     call async#make(<q-args>, {'grep': 1, 'jump': 
 command! -nargs=1 -bang GrepAdd   call async#make(<q-args>, {'grep': 1, 'jump': !<bang>0, 'append': 1})
 command! -nargs=1 -bang LGrepAdd  call async#make(<q-args>, {'grep': 1, 'jump': !<bang>0, 'locl': 1, 'append': 1})
 
-command! -nargs=1 -complete=customlist,async#tasks#complete Task call async#tasks#run(<q-args>)
-
 " vim: et sw=2 ts=2 sts=2 fdm=marker

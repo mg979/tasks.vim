@@ -29,6 +29,7 @@
 "         invalidated,  BOOL
 "     },
 "     project_1 = {
+"         env,          DICT
 "         tasks,        DICT
 "         invalidated,  BOOL
 "         profile,      STRING
@@ -42,11 +43,10 @@
 "   taskname = {
 "     local,            BOOL
 "     fields,           DICT
+"     warnings,         LIST        TODO
 "   }
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-let g:tasks = {}
 
 function! s:new_task(local) abort
     let t = {}
@@ -57,9 +57,13 @@ endfunction
 
 
 function! s:new_project(local) abort
-    let p = { 'tasks': {}, 'invalidated': 0 }
+    let p = { 'tasks': {}, 'invalidated': 0, 'env': {} }
     if a:local
+        let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:project_name() }
         let p.profile = 'default'
+        let p.info = { 'name': s:project_name() }
+    else
+        let p.projects = {}
     endif
     return p
 endfunction
@@ -106,14 +110,14 @@ endfunction
 " Parse configuration files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""
 " Function: s:parse
 " Parse and validate a tasks file.
 "
 " @param path:     path of the tasks file
 " @param is_local: true if it's project-local tasks file
-" @return: the validated task
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Returns: the validated task
+""
 function! s:parse(path, is_local) abort
     if a:path == ''
         return {}
@@ -137,53 +141,113 @@ function! s:parse(path, is_local) abort
             endfor
         endif
     endfor
-    call filter(p.tasks, function('s:validate_task'))
+    call filter(p.tasks, function('s:validate_task', [p]))
     return p
 endfunction
 
+
+" TODO: :Project, :Compile commands
+" TODO: test environmental variables expansion
+" TODO: assign score to commands to see which one should be chosen
+" TODO: cwd, prjname
+" TODO: success/fail hooks
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Validate tasks
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! s:validate_task(name, values) abort
-    " TODO: id/env
-    let [n, v] = [a:name, a:values]
+""
+" Function: s:validate_task (filter function)
+" @param project: the project (or the global ini) the task belong to
+" @param name:    name of the task (key of the project.tasks element)
+" @param values:  content of project.tasks[name]
+" Returns: true if the task is valid
+""
+function! s:validate_task(project, name, values) abort
+    let [p, n, v] = [a:project, a:name, a:values]
+    if s:is_env(p, n, v)            | return v:false | endif
+    if s:is_projects_list(p, n, v)  | return v:false | endif
+    if s:is_projects_info(p, n, v)  | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(n)           | return v:false | endif
     if s:no_valid_fields(v.fields)  | return v:false | endif
+    " set some mandatory elements
+    let v.fields.command = s:choose_command(v)
+    let v.fields.cwd = s:get_cwd(v)
     return v:true
 endfunction
 
 
-function! s:no_valid_fields(fields) abort
-    call filter(a:fields, function("s:valid_fields"))
-    return empty(a:fields)
-endfunction
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Special sections
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""
+" These are not real tasks, so they will be removed from the tasks dict after
+" they've been found, and their fields will be stored in the root of the
+" project dict. They are:
+"
+"   [info]      local to project, it contains informations about the project
+"   [env]       local to project, it contains environmental variables that will
+"               be set before the command is executed
+"   [projects]  in global ini, list of projects that can be started with the
+"               :Project command
+""
 
+fun! s:is_env(project, name, task) abort
+    if !a:task.local || a:name !=# 'env'
+        return v:false
+    endif
+    call extend(a:project.env, a:task.fields)
+    return v:true
+endfun
+
+
+fun! s:is_projects_list(project, name, task) abort
+    if a:task.local || a:name !=# 'projects'
+        return v:false
+    endif
+    let a:project.projects = a:task.fields
+    return v:true
+endfun
+
+
+fun! s:is_projects_info(project, name, task) abort
+    if !a:task.local || a:name !=# 'info'
+        return v:false
+    endif
+    call extend(a:project.info, a:task.fields)
+    return v:true
+endfun
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Actual tasks validation
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 function! s:failing_conditions(item) abort
     " / is the delimiter for systems and other conditions to satisfy
     " if conditions are separated by '+' they must all be satisfied
     " if conditions are separated by ',' any of them is enough
     if match(a:item, '/') > 0
+        let l:Has = { cond -> cond !~ '\clinux\|windows\|darwin' && has(cond) }
         let [_, conds] = split(a:item, '/')
         if match(conds, '+') >= 0
             for cond in split(conds, '+')
-                if     cond ==? 'linux'   && !s:is_linux   | return v:false
-                elseif cond ==? 'macos'   && !s:is_macos   | return v:false
-                elseif cond ==? 'windows' && !s:is_windows | return v:false
-                elseif !has(cond)                          | return v:false
+                if     cond ==? 'linux'   && !s:is_linux   | return v:true
+                elseif cond ==? 'macos'   && !s:is_macos   | return v:true
+                elseif cond ==? 'windows' && !s:is_windows | return v:true
+                elseif !l:Has(cond)                        | return v:true
                 endif
             endfor
         else
             for cond in split(conds, ',')
-                if has(cond)                              | return v:true
-                elseif cond ==? 'linux'   && s:is_linux   | return v:true
-                elseif cond ==? 'macos'   && s:is_macos   | return v:true
-                elseif cond ==? 'windows' && s:is_windows | return v:true
+                if l:Has(cond)                            | return v:false
+                elseif cond ==? 'linux'   && s:is_linux   | return v:false
+                elseif cond ==? 'macos'   && s:is_macos   | return v:false
+                elseif cond ==? 'windows' && s:is_windows | return v:false
                 endif
             endfor
+            return v:true
         endif
     endif
     return v:false
@@ -197,6 +261,12 @@ function! s:wrong_profile(task) abort
         return profile != s:get_tasks_profile()
     endif
     return v:false
+endfunction
+
+
+function! s:no_valid_fields(fields) abort
+    call filter(a:fields, function("s:valid_fields"))
+    return empty(a:fields)
 endfunction
 
 
@@ -250,7 +320,7 @@ function! s:validate_command(key, val) abort
     if match(k, ':') > 0
         return s:valid_filetype(k)
     endif
-    return a:key ==# 'command'
+    return k ==# 'command'
 endfunction
 
 
@@ -261,7 +331,8 @@ endfunction
 
 fun! async#tasks#run(args) abort
     redraw
-    let tasks = async#tasks#get().tasks
+    let prj = async#tasks#get(1)
+    let tasks = prj.tasks
 
     let a = split(a:args)
     let name = a[0]
@@ -273,22 +344,25 @@ fun! async#tasks#run(args) abort
     endif
 
     let task = tasks[name]
+    let cmd = task.fields.command
 
-    " TODO: success/fail hooks
-    let cmd = s:choose_command(task)
     let mode = s:get_cmd_mode(task)
-    let opts = extend({
+    let useropts = extend({
                 \ 'prg': cmd,
                 \ 'gprg': cmd,
                 \ 'efm': get(task.fields, 'efm', &errorformat),
                 \ 'compiler': get(task.fields, 'compiler', ''),
                 \ 'ft': get(task.fields, 'syntax', ''),
                 \}, s:get_mode_opts(mode))
+    let jobopts = {
+                \ 'env': prj.env,
+                \ 'cwd': task.fields.cwd,
+                \}
     let mode = substitute(mode, ':.*', '', '')
     if mode == 'quickfix'
-        call async#qfix(args, opts)
+        call async#qfix(args, useropts, jobopts)
     else
-        call async#cmd(cmd . ' ' . args, mode, opts)
+        call async#cmd(cmd . ' ' . args, mode, useropts, jobopts)
     endif
 endfun
 
@@ -296,16 +370,30 @@ endfun
 " Choose the most appropriate command for the task.
 ""
 fun! s:choose_command(task) abort
-    let [cp, ft] = ['^command', '\<' . s:ft() . '\>']
-    let cmds = filter(copy(a:task.fields), 'v:key =~ cp')
-    if empty(cmds)
-        return &makeprg
-    elseif len(cmds) == 1
-        return values(cmds)[0]
-    else
-        let cmds = filter(cmds, { k,v -> substitute(k, cp . ':', '', '') =~ ft })
-        return values(cmds)[0]
-    endif
+    let [cmdpat, ft] = ['^command', '\<' . s:ft() . '\>']
+
+    " loop all the commands and choose the one with the highest score
+    " score is based on specificity for system (/) and filetype (:)
+    let cmds = filter(copy(a:task.fields), 'v:key =~ cmdpat')
+    let best = [0, '']
+    for cmd in keys(cmds)
+        let score = (cmd =~ '/') + (cmd =~ ':')
+        if score >= best[0]
+            let best = [score, cmds[cmd]]
+        endif
+    endfor
+
+    " clear all commands from task, the chosen command will be set instead
+    call filter(a:task.fields, 'v:key !~ cmdpat')
+    return best[1] != '' ? best[1] : &makeprg
+endfun
+
+""
+" If the task defines a cwd, it should be expanded.
+""
+fun! s:get_cwd(task) abort
+    return has_key(a:task.fields, 'cwd') ? async#expand(a:task.fields.cwd)
+                \                        : getcwd()
 endfun
 
 ""
@@ -487,8 +575,9 @@ endfun
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
-let s:is_linux   = !s:is_windows && systemlist('uname')[0] == 'Linux'
-let s:is_macos   = !s:is_windows && !s:is_linux && systemlist('uname')[0] == 'Darwin'
+let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
+let s:is_linux   = s:uname == 'Linux'
+let s:is_macos   = s:uname == 'Darwin'
 
 let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(:\w+)?(\/(\w+,?)+)?\ze]'
 let s:pospat   = '\<top\>|\<bottom\>|\<left\>|\<right\>'
@@ -503,11 +592,12 @@ let s:patterns = {
             \ 'fail':         '^fail\ze=',
             \ 'syntax':       '^syntax\ze=',
             \ 'errorformat':  '^errorformat\ze=',
+            \ 'env':          '^[A-Z_]\+\ze=',
             \}
 
 let s:fields = {
             \ 'command':     function('s:validate_command'),
-            \ 'cwd':         { k,v -> v:true },
+            \ 'cwd':         { k,v -> v =~ '\%(\f\|/\)\+' },
             \ 'output':      function('s:validate_output'),
             \ 'compiler':    { k,v -> v =~ '\w\+' },
             \ 'success':     { k,v -> v:true },

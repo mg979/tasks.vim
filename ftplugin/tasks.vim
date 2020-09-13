@@ -3,6 +3,7 @@ if exists('b:did_ftplugin')
 endif
 let b:did_ftplugin = 1
 
+let &commentstring = '# %s'
 
 au BufWritePost <buffer> call s:update()
 
@@ -13,7 +14,7 @@ fun! s:update() abort
   let prj = expand('%:p:h:t')
   if has_key(g:tasks, prj)
     let g:tasks[prj].invalidated = 1
-  elseif confirm('Load this project?', "&Yes\n&No") == 1
+  else
     call async#tasks#project(1)
   endif
 endfun

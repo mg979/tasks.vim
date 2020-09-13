@@ -13,7 +13,7 @@
 "
 "  'id': the id
 "  'pid': the process id
-"  'job': the job object
+"  'job': the job object/handle
 "  'cmd': the argument for the job starter
 "  'opts': options for the job starter
 "  'out': initially empty, will be filled with the stdout
@@ -25,14 +25,14 @@
 " stored in the global dictionary, and that can be used later in custom
 " callbacks that must be provided with the first optional dictionary.
 "
-" These user options supported for the given mode mode:
+" Some user options supported for the given mode mode:
 "------------------------------------------------------------------------------
 "  'pos'   terminal position       terminal      '' (normal split)
-"  'pos'   buffer position         buffer        'botright'
+"  'pos'   buffer position         buffer        'bottom'
 "  'ft'    filetype                buffer        ''
 "  'ex'    ex commands             buffer        []
 "
-" Useful values for 'pos' are only: 'botright [vertical]', 'topleft [vertical]'
+" Useful values for 'pos' are only: 'top', 'bottom', 'left', 'right'
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 let g:async_jobs = {}
@@ -54,17 +54,22 @@ fun! async#cmd(cmd, mode, ...) abort
   let useropts = a:0 ? a:1 : {}
   let useropts.mode = a:mode
   let jobopts = a:0 > 1 ? a:2 : {}
-  let cmd = s:make_cmd(a:cmd, a:mode, useropts)
-  let opts = extend(s:job_opts(a:mode), jobopts)
-  let job = s:job_start(cmd, opts, useropts)
-  let s:id += 1
-  let g:async_jobs[s:id] = extend({
-        \ 'job': job, 'cmd': cmd, 'opts': opts,
-        \ 'id': s:id, 'pid': s:pid(job),
-        \ 'out': [],  'err': [],
-        \ 'title': a:cmd
-        \}, useropts)
-  return s:id
+  let expanded = async#expand(a:cmd, get(useropts, 'args', ''))
+  let cmd = s:make_cmd(expanded, a:mode, get(jobopts, 'env', {}))
+  if empty(cmd)
+    return 0
+  else
+    let opts = extend(s:job_opts(a:mode), jobopts)
+    let job = s:job_start(cmd, opts, useropts)
+    let s:id += 1
+    let g:async_jobs[s:id] = extend({
+          \ 'job': job, 'cmd': cmd, 'opts': opts,
+          \ 'id': s:id, 'pid': s:pid(job),
+          \ 'out': [],  'err': [],
+          \ 'title': a:cmd
+          \}, useropts)
+    return s:id
+  endif
 endfun "}}}
 
 
@@ -79,6 +84,7 @@ endfun "}}}
 "  'gprg'       grepprg                      default: &grepprg
 "  'efm'        errorformat                  default: &errorformat
 "  'compiler'   run :compiler x              default: ''
+"  'env'        environmental variables      default: {}
 "  'grep'       use grepprg, not makeprg     default: 0
 "  'locl'       use loclist, not qfix        default: 0
 "  'nofocus'    keep focus on window         default: 0
@@ -191,12 +197,12 @@ fun! s:cb_buffer(job, status, ...) abort
   let job = async#remove_job(a:job)
 
   " create buffer
-  exe get(job, 'pos', 'botright') (len(job.out) + len(job.err)) . 'new'
+  exe s:get_pos(job) (len(job.out) + len(job.err)) . 'new'
   setlocal bt=nofile bh=wipe noswf nobl
 
   " set buffer options and execute user commands
   let &l:statusline = job.title
-  if has_key(job, 'ft')
+  if get(job, 'ft', '') != ''
     exe 'setfiletype' job.ft
   endif
   if has_key(job, 'ex')
@@ -333,25 +339,32 @@ endfun
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""=============================================================================
-" Function: async#expand_args
+" Function: async#expand
+" Expand filename modfiers/variables in a given string.
 " Include args and perform expansions for the Make/Grep commands.
 " @param cmd:  generally &makeprg or &grepprg
 " @param args: the command arguments
 " @return: the full command
 ""=============================================================================
-fun! async#expand_args(cmd, args) abort
+fun! async#expand(cmd, ...) abort
   "{{{1
   " normally a placeholder for args isn't included, we must add it
-  let cmd = a:cmd
-  if a:args != '' && match(a:cmd, '\V$*') < 0
-    let cmd .= ' $*'
+  if a:0 && match(a:cmd, '\V$*') < 0
+    let cmd = a:cmd . ' ' . a:1
+  else
+    let cmd = substitute(a:cmd, '\$\*', a:0 ? a:1 : '', 'g')
+  endif
+  if s:is_windows
+    let cmd = substitute(cmd, '%\([A-Z_]\+\)%', '$\1', 'g')
   endif
   " from https://github.com/edkolev/vim-amake and
   " from tpope's vim-dispatch https://github.com/tpope/vim-dispatch
-  let cmd = substitute(cmd, '\$\*', a:args, 'g')
   let flags = '<\=\%(:[p8~.htre]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)*'
   let expandable = '\\*\%(<\w\+>\|%\|#\d*\)' . flags
   let cmd = substitute(cmd, expandable, '\=expand(submatch(0))', 'g')
+  if s:is_windows
+    let cmd = substitute(cmd, '\$\([A-Z_]\+\)\>', '%\1%', 'g')
+  endif
   return substitute(cmd, '^\s*\|\s*$', '', 'g')
 endfun "}}}
 
@@ -381,19 +394,43 @@ endfun "}}}
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Job command {{{1
-fun! s:make_cmd(cmd, mode, opts) abort
-  let cmd = async#expand_args(a:cmd, get(a:opts, 'args', ''))
+""
+" Function: s:make_cmd
+" @param cmd:  the command to run
+" @param mode: one of 'quickfix', 'buffer', 'terminal', 'cmdline', 'external'
+" @param env:  environmental variables to set
+"              (needed for terminal and external mode)
+" Returns: the full command for the job_start() function
+""
+fun! s:make_cmd(cmd, mode, env) abort
+  let cmd = a:cmd
+  let env = s:get_env(a:env)
   if a:mode == 'terminal'
-    return cmd
+    return env . cmd
   elseif a:mode == 'external'
-    let unix = get(g:, 'async_unix_terminal', 'x-terminal-emulator')
-    return   has('win32')      ? 'start cmd.exe /K ' . cmd
-          \: exists('$WSLENV') ? 'cmd.exe /c start cmd.exe /K ' . cmd
-          \                    : [unix, '-e', cmd]
+    return   s:is_windows          ? env . 'start cmd.exe /K ' . cmd
+          \: exists('$WSLENV')     ? env . 'cmd.exe /c start cmd.exe /K ' . cmd
+          \: !empty(s:unix_term()) ? [env . s:unix_term(), cmd] : v:null
   else
-    return has('win32') ? 'cmd.exe /C ' . cmd
+    return s:is_windows ? 'cmd.exe /C ' . cmd
           \             : ['sh', '-c', cmd]
   endif
+endfun
+
+" Get environmental variables defined in the 'env' section of the project {{{1
+""
+" Function: s:get_env
+" @param env: the dictionary with the env variables
+" Returns: a string with the concatenated commands to set the variables
+""
+fun! s:get_env(env) abort
+  let E = a:env
+  let env = ''
+  let pre = s:is_windows ? 'set ' : ''
+  for k in keys(E)
+    let env .= printf('%s=%s && ', pre . k, string(E[k]))
+  endfor
+  return env
 endfun
 
 " Start job {{{1
@@ -410,14 +447,9 @@ fun! s:term_start(cmd, opts, useropts) abort
     new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
   endif
   let job = has('nvim') ? termopen(a:cmd, a:opts) : term_getjob(term_start(a:cmd, a:opts))
-  let pos = get(a:useropts, 'pos'. '')
-  if pos != ''
-    let vert = pos =~ 'vert'
-    if pos =~ 'bo'
-      exe 'wincmd' (vert ? 'H' : 'J')
-    elseif pos =~ 'to'
-      exe 'wincmd' (vert ? 'L' : 'K')
-    endif
+  let pos = s:get_pos(a:useropts)
+  if pos != 'split'
+    exe 'wincmd' {'top': 'K', 'bottom': 'J', 'left': 'H', 'right': 'L'}[pos]
   endif
   if has('nvim') && get(a:useropts, 'startinsert', 0)
     startinsert
@@ -477,8 +509,7 @@ endfun
 ""=============================================================================
 fun! s:get_job_with_channel(channel) abort
   for id in keys(g:async_jobs)
-    let channel = job_getchannel(g:async_jobs[id]['job'])
-    if channel == a:channel
+    if ch_getjob(a:channel) == g:async_jobs[id]['job']
       return g:async_jobs[id]
     endif
   endfor
@@ -539,6 +570,17 @@ fun! s:pid(job) abort
   return has('nvim') ? jobpid(a:job) : job_info(a:job).process
 endfun
 
+" Get the position for buffer/terminal mode
+fun! s:get_pos(job) abort
+  let pos = get(a:job, 'pos', '')
+  if pos == 'bottom'    | return 'botright'
+  elseif pos == 'right' | return 'vertical botright'
+  elseif pos == 'left'  | return 'vertical topleft'
+  elseif pos == 'top'   | return 'topleft'
+  else                  | return 'split'
+  endif
+endfun
+
 " Add finished job to the global table {{{1
 fun! s:finished_job(job, status) abort
   unlet a:job.out
@@ -548,5 +590,12 @@ fun! s:finished_job(job, status) abort
 endfun
 
 "}}}
+
+let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
+let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
+let s:is_linux   = s:uname == 'Linux'
+let s:is_macos   = s:uname == 'Darwin'
+let s:unix_term  = { -> get(g:, 'async_unix_terminal', '') }
+
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
