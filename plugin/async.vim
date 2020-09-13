@@ -30,7 +30,7 @@ command! -nargs=1       System    call async#cmd(<q-args>, 'buffer')
 command! -nargs=1       Echo      call async#cmd(<q-args>, 'cmdline')
 
 command! -bang          StopJobs  call async#stop(0, <bang>0)
-command!                Jobs      call async#list()
+command! -bang          Jobs      call async#list(<bang>0)
 
 command! -nargs=? -bang Make      call async#make(<q-args>, {'jump': !<bang>0})
 command! -nargs=? -bang LMake     call async#make(<q-args>, {'locl': 1, 'jump': !<bang>0})

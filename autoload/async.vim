@@ -153,8 +153,12 @@ endfun "}}}
 " Function: async#list
 " List running jobs. Input for id of job to terminate.
 ""=============================================================================
-fun! async#list() abort
+fun! async#list(finished) abort
   " {{{1
+  if a:finished
+    call s:list_finished_jobs()
+    return
+  endif
   if empty(g:async_jobs)
     echo 'No running jobs'
     return
@@ -162,14 +166,15 @@ fun! async#list() abort
   echohl Title
   echo 'id    process     command'
   echohl None
+  let limit = &columns - 6 - 12 - 5
   for id in keys(g:async_jobs)
     try
       if has('nvim')
         let job = str2nr(g:async_jobs[id].job)
-        echo printf('%-6s%-12s%s', id, jobpid(job), g:async_jobs[id].cmd)
+        echo printf('%-6s%-12s%-'.limit.'s', id, jobpid(job), g:async_jobs[id].cmd)
       else
         let job = job_info(g:async_jobs[id].job)
-        echo printf('%-6s%-12s%s', id, job.process, job.cmd)
+        echo printf('%-6s%-12s%-'.limit.'s', id, job.process, job.cmd)
       endif
     catch
       call async#remove_job(job)
@@ -180,6 +185,21 @@ fun! async#list() abort
     call async#stop(id, 0)
   endif
 endfun "}}}
+
+fun! s:list_finished_jobs() abort
+  if empty(g:async_finished_jobs)
+    echo 'No finished jobs'
+    return
+  endif
+  echohl Title
+  echo 'id  process  status  command'
+  echohl None
+  let J = g:async_finished_jobs
+  for id in keys(J)
+    let limit = &columns - 4 - 9 - 8 - 5
+    echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, J[id].cmd)
+  endfor
+endfun
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -633,7 +653,9 @@ fun! s:finished_job(job, status) abort
   unlet a:job.out
   unlet a:job.err
   let g:async_finished_jobs[a:job.id] = a:job
-  let g:async_finished_jobs[a:job.id].status = a:status
+  let j = g:async_finished_jobs[a:job.id]
+  let j.status = a:status
+  let j.cmd = type(j.cmd) == v:t_string ? j.cmd : join(j.cmd)
 endfun
 
 "}}}
