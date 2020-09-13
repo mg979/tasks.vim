@@ -398,15 +398,16 @@ endfun "}}}
 " Function: s:make_cmd
 " @param cmd:  the command to run
 " @param mode: one of 'quickfix', 'buffer', 'terminal', 'cmdline', 'external'
-" @param env:  environmental variables to set
-"              (needed for terminal and external mode)
+" @param env:  environmental variables to set (for terminal and external mode)
 " Returns: the full command for the job_start() function
 ""
 fun! s:make_cmd(cmd, mode, env) abort
   let cmd = a:cmd
   let env = s:get_env(a:env)
   if a:mode == 'terminal'
-    return env . cmd
+    return s:is_windows ? env . cmd :
+          \has('nvim')  ? ['sh', '-c', env . cmd]
+          \             : ['sh', '-c', cmd]
   elseif a:mode == 'external'
     return   s:is_windows          ? env . 'start cmd.exe /K ' . cmd
           \: exists('$WSLENV')     ? env . 'cmd.exe /c start cmd.exe /K ' . cmd
@@ -428,6 +429,10 @@ fun! s:get_env(env) abort
   let env = ''
   let pre = s:is_windows ? 'set ' : ''
   for k in keys(E)
+    " in Windows we must set the env vars here or it won't work...
+    if s:is_windows
+      exe 'let $'.k . '=' . string(E[k])
+    endif
     let env .= printf('%s=%s && ', pre . k, string(E[k]))
   endfor
   return env
