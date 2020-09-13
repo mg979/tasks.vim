@@ -404,17 +404,32 @@ endfun "}}}
 fun! s:make_cmd(cmd, mode, env) abort
   let cmd = a:cmd
   let env = s:get_env(a:env)
+
   if a:mode == 'terminal'
     return s:is_windows ? env . cmd :
           \has('nvim')  ? ['sh', '-c', env . cmd]
           \             : ['sh', '-c', cmd]
+
   elseif a:mode == 'external'
-    return   s:is_windows          ? env . 'start cmd.exe /K ' . cmd
-          \: exists('$WSLENV')     ? env . 'cmd.exe /c start cmd.exe /K ' . cmd
-          \: !empty(s:unix_term()) ? [env . s:unix_term(), cmd] : v:null
+    return s:is_windows ? env . 'start cmd.exe /K ' . cmd
+          \             : s:unix_term(env, cmd)
   else
     return s:is_windows ? 'cmd.exe /C ' . cmd
           \             : ['sh', '-c', cmd]
+  endif
+endfun
+
+fun! s:unix_term(env, cmd) abort
+  if get(g:, 'async_unix_terminal', '') != ''
+    return split(g:async_unix_terminal) + [a:cmd]
+  elseif executable('urxvt')
+    return ['urxvt', '-hold', '-e', 'sh', '-c', a:cmd]
+  elseif executable('xfce4-terminal')
+    return ['xfce4-terminal', '-H', '-e', 'sh', '-c', a:cmd]
+  elseif s:is_wsl
+    return ['sh', '-c', a:env . 'cmd.exe /c start cmd.exe /K wsl.exe ' . a:cmd]
+  else
+    return v:null
   endif
 endfun
 
@@ -600,7 +615,7 @@ let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
 let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
 let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
-let s:unix_term  = { -> get(g:, 'async_unix_terminal', '') }
+let s:is_wsl     = exists('$WSLENV')
 
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker

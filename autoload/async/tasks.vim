@@ -236,6 +236,7 @@ function! s:failing_conditions(item) abort
                 if     cond ==? 'linux'   && !s:is_linux   | return v:true
                 elseif cond ==? 'macos'   && !s:is_macos   | return v:true
                 elseif cond ==? 'windows' && !s:is_windows | return v:true
+                elseif cond ==? 'wsl'     && !s:is_wsl     | return v:true
                 elseif !l:Has(cond)                        | return v:true
                 endif
             endfor
@@ -245,6 +246,7 @@ function! s:failing_conditions(item) abort
                 elseif cond ==? 'linux'   && s:is_linux   | return v:false
                 elseif cond ==? 'macos'   && s:is_macos   | return v:false
                 elseif cond ==? 'windows' && s:is_windows | return v:false
+                elseif cond ==? 'wsl'     && s:is_wsl     | return v:false
                 endif
             endfor
             return v:true
@@ -578,6 +580,7 @@ let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
 let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
 let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
+let s:is_wsl     = exists('$WSLENV')
 
 let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(:\w+)?(\/(\w+,?)+)?\ze]'
 let s:pospat   = '\<top\>|\<bottom\>|\<left\>|\<right\>'
