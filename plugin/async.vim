@@ -29,7 +29,7 @@ let g:loaded_async = 1
 command! -nargs=1       System    call async#cmd(<q-args>, 'buffer')
 command! -nargs=1       Echo      call async#cmd(<q-args>, 'cmdline')
 
-command! -bang          StopJobs  call async#stop(<bang>0)
+command! -bang          StopJobs  call async#stop(0, <bang>0)
 command!                Jobs      call async#list()
 
 command! -nargs=? -bang Make      call async#make(<q-args>, {'jump': !<bang>0})

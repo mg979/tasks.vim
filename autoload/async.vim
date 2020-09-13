@@ -130,14 +130,14 @@ fun! async#qfix(args, ...) abort
 endfun "}}}
 
 
-""=============================================================================
+""
 " Function: async#stop
-" Stop all jobs. With a bang, jobs are killed.
+" @param id:   the id of the job to stop. If 0, all jobs are stopped.
 " @param kill: kill rather than terminate. Vim only.
-""=============================================================================
-fun! async#stop(kill) abort
+""
+fun! async#stop(id, kill) abort
   " {{{1
-  for id in keys(g:async_jobs)
+  for id in (a:id ? [a:id] : keys(g:async_jobs))
     if has('nvim')
       let job = str2nr(g:async_jobs[id].job)
       call jobstop(job)
@@ -151,7 +151,7 @@ endfun "}}}
 
 ""=============================================================================
 " Function: async#list
-" List running jobs.
+" List running jobs. Input for id of job to terminate.
 ""=============================================================================
 fun! async#list() abort
   " {{{1
@@ -160,21 +160,25 @@ fun! async#list() abort
     return
   endif
   echohl Title
-  echo 'process     command'
+  echo 'id    process     command'
   echohl None
   for id in keys(g:async_jobs)
     try
       if has('nvim')
         let job = str2nr(g:async_jobs[id].job)
-        echo printf('%-12s%s', jobpid(job), g:async_jobs[id].cmd)
+        echo printf('%-6s%-12s%s', id, jobpid(job), g:async_jobs[id].cmd)
       else
         let job = job_info(g:async_jobs[id].job)
-        echo printf('%-12s%s', job.process, job.cmd)
+        echo printf('%-6s%-12s%s', id, job.process, job.cmd)
       endif
     catch
       call async#remove_job(job)
     endtry
   endfor
+  let id = input('> ')
+  if id != '' && confirm('Stop job with id '.id, "&Yes\n&No") == 0
+    call async#stop(id, 0)
+  endif
 endfun "}}}
 
 
