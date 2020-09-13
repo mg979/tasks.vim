@@ -411,8 +411,8 @@ fun! s:make_cmd(cmd, mode, env) abort
           \             : ['sh', '-c', cmd]
 
   elseif a:mode == 'external'
-    return s:is_windows ? env . 'start cmd.exe /K ' . cmd
-          \             : s:unix_term(env, cmd)
+    return s:is_windows ? 'start cmd.exe /K ' . s:tempscript(a:cmd, a:env, 0)
+          \             : s:unix_term(a:env, cmd)
   else
     return s:is_windows ? 'cmd.exe /C ' . cmd
           \             : ['sh', '-c', cmd]
@@ -427,10 +427,31 @@ fun! s:unix_term(env, cmd) abort
   elseif executable('xfce4-terminal')
     return ['xfce4-terminal', '-H', '-e', 'sh', '-c', a:cmd]
   elseif s:is_wsl
-    return ['sh', '-c', a:env . 'cmd.exe /c start cmd.exe /K wsl.exe ' . a:cmd]
+    return ['sh', '-c', 'cmd.exe /c start cmd.exe /K wsl.exe ' . s:tempscript(a:cmd, a:env, 1)]
   else
     return v:null
   endif
+endfun
+
+fun! s:tempscript(cmd, env, wsl) abort
+  let lines = []
+  if a:wsl
+    for var in keys(a:env)
+      let lines += [var . '=' . string(a:env[var])]
+    endfor
+    let lines += [a:cmd]
+  else
+    let lines += ['@echo OFF']
+    for var in keys(a:env)
+      let lines += ['set ' . var . '=' . a:env[var] . "\r"]
+    endfor
+    let lines += [a:cmd]
+    let lines += ['@echo ON']
+  endif
+  let fname = tempname() . (a:wsl ? '.sh' : '.bat')
+  call add(s:cmdscripts, fname)
+  call writefile(lines, fname)
+  return a:wsl ? ('sh ' . fname) : fname
 endfun
 
 " Get environmental variables defined in the 'env' section of the project {{{1
@@ -521,9 +542,6 @@ endfun
 
 ""=============================================================================
 " Function: s:get_job_with_channel
-" Vim implementation of jobs makes things difficult here. It's not possible for
-" the job callbacks to know the job they belong to...
-"
 " @param channel: the channel in use
 " @return: the entry in g:async_jobs for the requested channel
 ""=============================================================================
@@ -603,6 +621,11 @@ endfun
 
 " Add finished job to the global table {{{1
 fun! s:finished_job(job, status) abort
+  if !empty(s:cmdscripts)
+    for f in s:cmdscripts
+      call timer_start(1000, { t -> delete(f) })
+    endfor
+  endif
   unlet a:job.out
   unlet a:job.err
   let g:async_finished_jobs[a:job.id] = a:job
@@ -616,6 +639,7 @@ let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
 let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
+let s:cmdscripts = []
 
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
