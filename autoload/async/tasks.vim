@@ -171,9 +171,6 @@ function! s:validate_task(project, name, values) abort
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(n)           | return v:false | endif
     if s:no_valid_fields(v.fields)  | return v:false | endif
-    " set some mandatory elements
-    let v.fields.command = s:choose_command(v)
-    let v.fields.cwd = s:get_cwd(v)
     return v:true
 endfunction
 
@@ -346,7 +343,7 @@ fun! async#tasks#run(args) abort
     endif
 
     let task = tasks[name]
-    let cmd = task.fields.command
+    let cmd = s:choose_command(task)
 
     let mode = s:get_cmd_mode(task)
     let useropts = extend({
@@ -358,7 +355,7 @@ fun! async#tasks#run(args) abort
                 \}, s:get_mode_opts(mode))
     let jobopts = {
                 \ 'env': prj.env,
-                \ 'cwd': task.fields.cwd,
+                \ 'cwd': s:get_cwd(task),
                 \}
     let mode = substitute(mode, ':.*', '', '')
     if mode == 'quickfix'
