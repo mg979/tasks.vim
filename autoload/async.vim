@@ -25,14 +25,6 @@
 " stored in the global dictionary, and that can be used later in custom
 " callbacks that must be provided with the first optional dictionary.
 "
-" Some user options supported for the given mode mode:
-"------------------------------------------------------------------------------
-"  'pos'   terminal position       terminal      '' (normal split)
-"  'pos'   buffer position         buffer        'bottom'
-"  'ft'    filetype                buffer        ''
-"  'ex'    ex commands             buffer        []
-"
-" Useful values for 'pos' are only: 'top', 'bottom', 'left', 'right'
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 let g:async_jobs = {}
@@ -42,7 +34,6 @@ let s:id = 0
 ""=============================================================================
 " Function: async#cmd
 " Run a shell cmd asynchronously.
-"
 " @param cmd:  the command
 " @param mode: quickfix, buffer, terminal, external or cmdline
 " @param ...:  extra args, can be one or two dicts
@@ -64,51 +55,28 @@ fun! async#cmd(cmd, mode, ...) abort
     let s:id += 1
     let g:async_jobs[s:id] = extend({
           \ 'job': job, 'cmd': cmd, 'opts': opts,
-          \ 'id': s:id, 'pid': s:pid(job),
-          \ 'out': [],  'err': [],
-          \ 'title': a:cmd
-          \}, useropts)
+          \ 'id': s:id, 'pid': s:pid(job), 'title': a:cmd,
+          \ 'status': 'running', 'out': [], 'err': [],
+          \}, s:default_opts(useropts))
     return s:id
   endif
 endfun "}}}
 
-
 ""=============================================================================
-" Function: async#make
+" Function: async#qfix
 " Run a job and populate quickfix with results.
 " @param args:  the args for the command
 " @param ...:   optional dicts as for async#cmd (useropts, jobopts).
 " Returns: the id of the job
-"
-" Valid user options are:
-"  'prg'        makeprg                      default: &makeprg
-"  'gprg'       grepprg                      default: &grepprg
-"  'efm'        errorformat                  default: &errorformat
-"  'compiler'   run :compiler x              default: ''
-"  'env'        environmental variables      default: {}
-"  'grep'       use grepprg, not makeprg     default: 0
-"  'locl'       use loclist, not qfix        default: 0
-"  'nofocus'    keep focus on window         default: 0
-"  'nojump'     don't jump to first item     default: 0
-"  'noopen'     don't open qfix window       default: 0
-"  'append'     append errors to list        default: 0
 ""=============================================================================
 fun! async#qfix(args, ...) abort
   "{{{1
-  let user = extend({
-        \     'prg': &makeprg,
-        \     'gprg': &grepprg,
-        \     'efm': &errorformat,
-        \     'compiler': '',
-        \     'append': 0,
-        \     'locl': 0,
-        \     'grep': 0,
-        \     'nofocus': 0,
-        \     'nojump': 0,
-        \     'noopen': 0,
-        \     'silent': 0,
-        \     'args': a:args,
-        \}, a:0 ? a:1 : {})
+  let user = extend(s:default_opts(a:0 ? a:1 : {}), {'args': a:args})
+
+  " pattern for QuickFixCmdPre and QuickFixCmdPost
+  if user.qfautocmd == ''
+    let user.qfautocmd = user.grep ? 'grep' : 'make'
+  endif
 
   " store old settings
   let [user._prg, user._gprg, user._efm] = [&makeprg, &grepprg, &errorformat]
@@ -128,24 +96,26 @@ fun! async#qfix(args, ...) abort
 endfun "}}}
 
 
-""
+""=============================================================================
 " Function: async#compiler
 " @param args: the compiler name, followed by the optional command
-" @param opts: options to be forwarded
+" @param opts: user options
+" @param ...:  job options (optional)
 " Returns: the id of the job
-""
+""=============================================================================
 fun! async#compiler(args, opts, ...) abort
+  "{{{1
   let args = split(a:args)
   let opts = extend({ 'compiler': args[0] }, a:opts)
   return async#qfix(join(args[1:]), opts, a:0 ? a:1 : {})
-endfun
+endfun "}}}
 
 
-""
+""=============================================================================
 " Function: async#stop
 " @param id:   the id of the job to stop. If 0, all jobs are stopped.
 " @param kill: kill rather than terminate. Vim only.
-""
+""=============================================================================
 fun! async#stop(id, kill) abort
   " {{{1
   for id in (a:id ? [a:id] : keys(g:async_jobs))
@@ -195,7 +165,7 @@ fun! async#list(finished) abort
   if id != '' && confirm('Stop job with id '.id, "&Yes\n&No") == 0
     call async#stop(id, 0)
   endif
-endfun "}}}
+endfun
 
 fun! s:list_finished_jobs() abort
   if empty(g:async_finished_jobs)
@@ -210,7 +180,8 @@ fun! s:list_finished_jobs() abort
     let limit = &columns - 4 - 9 - 8 - 5
     echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, J[id].cmd)
   endfor
-endfun
+endfun "}}}
+
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -219,20 +190,24 @@ endfun
 "                                                                             "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-
 ""=============================================================================
 " Function: s:cb_buffer
 " Called when the job has exited, creates a buffer with the output.
-" @param job:    the job object.
-" @param status: the exit status for the job.
+" @param job:    the job object
+" @param status: the exit status of the job
 " @param ...:    the event type (passed by nvim, unused)
+"
+" job user options specific for buffer mode:
+"  'pos'   position     'split', 'top', 'bottom'(default), 'left', 'right'
+"  'ft'    filetype     ''
+"  'ex'    ex commands  []
 ""=============================================================================
 fun! s:cb_buffer(job, status, ...) abort
   " {{{1
   let job = async#remove_job(a:job)
 
   " create buffer
-  exe s:get_pos(job) (len(job.out) + len(job.err)) . 'new'
+  exe s:get_pos(job, 'bottom') (len(job.out) + len(job.err)) . 'new'
   setlocal bt=nofile bh=wipe noswf nobl
 
   " set buffer options and execute user commands
@@ -272,8 +247,8 @@ endfun "}}}
 ""=============================================================================
 " Function: s:cb_make
 " Called when the job has exited, populates the qfix list
-" @param job:    the job object.
-" @param status: the exit status for the job.
+" @param job:    the job object
+" @param status: the exit status of the job
 " @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
 fun! s:cb_quickfix(job, status, ...) abort
@@ -286,12 +261,12 @@ fun! s:cb_quickfix(job, status, ...) abort
 
   let &errorformat = job.efm
 
-  exe 'silent doautocmd QuickFixCmdPre' (job.grep ? 'grep' : 'make')
+  exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
   let cxpr =  job.locl ? 'l' : 'c'
   let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
   let cxpr .= 'expr'
   exe cxpr 'job.out + job.err'
-  exe 'silent doautocmd QuickFixCmdPost' (job.grep ? 'grep' : 'make')
+  exe 'silent doautocmd QuickFixCmdPost' job.qfautocmd
 
   let &errorformat = job._efm
 
@@ -324,8 +299,8 @@ endfun "}}}
 ""=============================================================================
 " Function: s:cb_cmdline
 " Echo the output of an asynchronous shell command to the command line.
-" @param job:    the job object.
-" @param status: the exit status for the job.
+" @param job:    the job object
+" @param status: the exit status of the job
 " @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
 fun! s:cb_cmdline(job, status, ...) abort
@@ -346,29 +321,34 @@ endfun "}}}
 ""=============================================================================
 " Function: s:cb_terminal
 " Remove the job but set buffer variables so that out/err are saved.
-" @param job:    the job object.
-" @param status: the exit status for the job.
+" @param job:    the job object
+" @param status: the exit status of the job
 " @param ...:    the event type (passed by nvim, unused)
+"
+" job.pos can be: 'split'(default), 'top', 'bottom', 'left', 'right'
 ""=============================================================================
 fun! s:cb_terminal(job, status, ...) abort
+  "{{{1
   let job = async#remove_job(a:job)
   let b:job_out = job.out
   let b:job_err = job.err
   call s:finished_job(job, a:status)
-endfun
+endfun "}}}
 
 
 ""=============================================================================
 " Function: s:cb_external
 " Not much to do here... there's nothing useful that can be saved.
-" @param job:    the job object.
-" @param status: the exit status for the job.
+" @param job:    the job object
+" @param status: the exit status of the job
 " @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
 fun! s:cb_external(job, status, ...) abort
+  "{{{1
   let job = async#remove_job(a:job)
   call s:finished_job(job, a:status)
-endfun
+endfun "}}}
+
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -383,7 +363,7 @@ endfun
 " Include args and perform expansions for the Make/Grep commands.
 " @param cmd:  generally &makeprg or &grepprg
 " @param args: the command arguments
-" @return: the full command
+" Returns: the full command
 ""=============================================================================
 fun! async#expand(cmd, ...) abort
   "{{{1
@@ -412,7 +392,7 @@ endfun "}}}
 " Function: async#remove_job
 " Remove a job from the global dictionary, when job has exited.
 " @param job: the job to remove
-" @return: the removed entry
+" Returns: the removed entry
 ""=============================================================================
 fun! async#remove_job(job) abort
   "{{{1
@@ -431,6 +411,37 @@ endfun "}}}
 "                                   Helpers                                   "
 "                                                                             "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Default user options {{{1
+"  'prg'        makeprg                      default: &makeprg
+"  'gprg'       grepprg                      default: &grepprg
+"  'efm'        errorformat                  default: &errorformat
+"  'compiler'   run :compiler x              default: ''
+"  'qfautocmd'  quickfix autocommands        default: ''
+"  'env'        environmental variables      default: {}
+"  'grep'       use grepprg, not makeprg     default: 0
+"  'locl'       use loclist, not qfix        default: 0
+"  'nofocus'    keep focus on window         default: 0
+"  'nojump'     don't jump to first item     default: 0
+"  'noopen'     don't open qfix window       default: 0
+"  'silent'     the 3 above combined         default: 0
+fun! s:default_opts(useropts)
+  return extend({
+        \ 'prg': &makeprg,
+        \ 'gprg': &grepprg,
+        \ 'efm': &errorformat,
+        \ 'qfautocmd': '',
+        \ 'compiler': '',
+        \ 'repeat': 0,
+        \ 'append': 0,
+        \ 'locl': 0,
+        \ 'grep': 0,
+        \ 'silent': 0,
+        \ 'nofocus': 0,
+        \ 'nojump': 0,
+        \ 'noopen': 0,
+        \}, a:useropts)
+endfun
 
 " Job command {{{1
 ""
@@ -458,6 +469,9 @@ fun! s:make_cmd(cmd, mode, env) abort
   endif
 endfun
 
+""
+" s:unix_term: command to start an external terminal in unix environment
+""
 fun! s:unix_term(env, cmd) abort
   let X = systemlist('xset q &>/dev/null && echo 1 || echo 0')[0]
   if get(g:, 'async_unix_terminal', '') != ''
@@ -473,6 +487,9 @@ fun! s:unix_term(env, cmd) abort
   endif
 endfun
 
+""
+" s:tempscript: make windows script that contains env variables and command
+""
 fun! s:tempscript(cmd, env, wsl) abort
   let lines = []
   if a:wsl
@@ -494,7 +511,7 @@ fun! s:tempscript(cmd, env, wsl) abort
   return a:wsl ? ('sh ' . fname) : fname
 endfun
 
-" Get environmental variables defined in the 'env' section of the project {{{1
+" Environmental variables {{{1
 ""
 " Function: s:get_env
 " @param env: the dictionary with the env variables
@@ -515,6 +532,9 @@ fun! s:get_env(env) abort
 endfun
 
 " Start job {{{1
+""
+" s:job_start: start a job and return its id
+""
 fun! s:job_start(cmd, opts, useropts) abort
   if a:useropts.mode == 'terminal'
     return s:term_start(a:cmd, a:opts, a:useropts)
@@ -523,12 +543,15 @@ fun! s:job_start(cmd, opts, useropts) abort
   endif
 endfun
 
+""
+" s:term_start: start job in an embedded terminal
+""
 fun! s:term_start(cmd, opts, useropts) abort
   if has('nvim')
     new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
   endif
   let job = has('nvim') ? termopen(a:cmd, a:opts) : term_getjob(term_start(a:cmd, a:opts))
-  let pos = s:get_pos(a:useropts)
+  let pos = s:get_pos(a:useropts, 'split')
   if pos != 'split'
     exe 'wincmd' {'top': 'K', 'bottom': 'J', 'left': 'H', 'right': 'L'}[pos]
   endif
@@ -540,6 +563,9 @@ endfun
 
 
 " Create dictionary with job options {{{1
+" @param mode: the output mode
+" @return: the job options dictionary
+""
 fun! s:job_opts(mode) abort
   if has('nvim')
     let opts = {
@@ -570,7 +596,7 @@ endfun
 ""=============================================================================
 " Function: s:get_job
 " @param job: a job handler
-" @return: the entry in g:async_jobs for the requested job
+" Returns: the entry in g:async_jobs for the requested job
 ""=============================================================================
 fun! s:get_job(job) abort
   for id in keys(g:async_jobs)
@@ -583,7 +609,7 @@ endfun
 ""=============================================================================
 " Function: s:get_job_with_channel
 " @param channel: the channel in use
-" @return: the entry in g:async_jobs for the requested channel
+" Returns: the entry in g:async_jobs for the requested channel
 ""=============================================================================
 fun! s:get_job_with_channel(channel) abort
   for id in keys(g:async_jobs)
@@ -618,10 +644,11 @@ fun! s:vim_err(channel, line) abort
   call add(job['err'], a:line)
 endfun
 
-" Echo some output to the command line {{{1
+" Echo output to the command line {{{1
+" @param list: a list of lines
+" @param ...: will be 'err' if echoerr is to be used
+""
 fun! s:echo(list, ...)
-  " @param list: a list of lines
-  " @param ...: will be 'err' if echoerr is to be used
   call filter(a:list, { k,v -> v != '' })
   let txt = map(a:list, { k,v -> ':echo ' . string(v) . "\n" })
   if a:0
@@ -632,6 +659,9 @@ fun! s:echo(list, ...)
 endfun
 
 " Remove trailing empty lines from output {{{1
+" @param job: the job object
+" @return: the output without starting or ending blanks
+""
 fun! s:no_trailing_blanks(job) abort
   " nvim output often has a trailing empty line
   if !empty(a:job.out) && a:job.out[-1] == ''
@@ -648,9 +678,9 @@ fun! s:pid(job) abort
   return has('nvim') ? jobpid(a:job) : job_info(a:job).process
 endfun
 
-" Get the position for buffer/terminal mode
-fun! s:get_pos(job) abort
-  let pos = get(a:job, 'pos', '')
+" Get the position for buffer/terminal mode {{{1
+fun! s:get_pos(job, default) abort
+  let pos = get(a:job, 'pos', a:default)
   if pos == 'bottom'    | return 'botright'
   elseif pos == 'right' | return 'vertical botright'
   elseif pos == 'left'  | return 'vertical topleft'
@@ -659,7 +689,7 @@ fun! s:get_pos(job) abort
   endif
 endfun
 
-" Add finished job to the global table {{{1
+" Add finished job to the global table, and store its exit status {{{1
 fun! s:finished_job(job, status) abort
   if !empty(s:cmdscripts)
     for f in s:cmdscripts
@@ -673,7 +703,6 @@ fun! s:finished_job(job, status) abort
   let j.status = a:status
   let j.cmd = type(j.cmd) == v:t_string ? j.cmd : join(j.cmd)
 endfun
-
 "}}}
 
 let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
@@ -682,6 +711,5 @@ let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
 let s:cmdscripts = []
-
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
