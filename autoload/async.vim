@@ -129,6 +129,19 @@ endfun "}}}
 
 
 ""
+" Function: async#compiler
+" @param args: the compiler name, followed by the optional command
+" @param opts: options to be forwarded
+" Returns: the id of the job
+""
+fun! async#compiler(args, opts, ...) abort
+  let args = split(a:args)
+  let opts = extend({ 'compiler': args[0] }, a:opts)
+  return async#qfix(join(args[1:]), opts, a:0 ? a:1 : {})
+endfun
+
+
+""
 " Function: async#stop
 " @param id:   the id of the job to stop. If 0, all jobs are stopped.
 " @param kill: kill rather than terminate. Vim only.
