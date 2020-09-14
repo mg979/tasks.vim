@@ -444,11 +444,12 @@ fun! s:make_cmd(cmd, mode, env) abort
 endfun
 
 fun! s:unix_term(env, cmd) abort
+  let X = systemlist('xset q &>/dev/null && echo 1 || echo 0')[0]
   if get(g:, 'async_unix_terminal', '') != ''
     return split(g:async_unix_terminal) + [a:cmd]
-  elseif executable('urxvt')
+  elseif X && executable('urxvt')
     return ['urxvt', '-hold', '-e', 'sh', '-c', a:cmd]
-  elseif executable('xfce4-terminal')
+  elseif X && executable('xfce4-terminal')
     return ['xfce4-terminal', '-H', '-e', 'sh', '-c', a:cmd]
   elseif s:is_wsl
     return ['sh', '-c', 'cmd.exe /c start cmd.exe /K wsl.exe ' . s:tempscript(a:cmd, a:env, 1)]
