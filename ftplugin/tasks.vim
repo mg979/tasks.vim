@@ -15,7 +15,7 @@ fun! s:update() abort
   if has_key(g:tasks, prj)
     let g:tasks[prj].invalidated = 1
   else
-    call async#tasks#project(1)
+    call tasks#project(1)
   endif
 endfun
 

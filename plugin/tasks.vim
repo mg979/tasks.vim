@@ -23,7 +23,7 @@ let g:loaded_tasks = 1
 
 let g:tasks = {}
 
-command! -nargs=1 -complete=customlist,async#tasks#complete Task call async#tasks#run(<q-args>)
+command! -nargs=1 -complete=customlist,tasks#complete Task call tasks#run(<q-args>)
 
 
 

@@ -73,13 +73,13 @@ endfunction
 " Tasks getters
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! async#tasks#get(...) abort
+function! tasks#get(...) abort
     let reload = a:0 && a:1
-    return extend(async#tasks#global(reload), async#tasks#project(reload))
+    return extend(tasks#global(reload), tasks#project(reload))
 endfunction
 
 
-function! async#tasks#project(reload) abort
+function! tasks#project(reload) abort
     let f = s:get_local_ini()
     if !filereadable(f)
         return {}
@@ -93,7 +93,7 @@ function! async#tasks#project(reload) abort
 endfunction
 
 
-function! async#tasks#global(reload) abort
+function! tasks#global(reload) abort
     let f = s:get_global_ini()
     if !filereadable(f)
         return {}
@@ -190,31 +190,31 @@ endfunction
 "               :Project command
 ""
 
-fun! s:is_env(project, name, task) abort
+function! s:is_env(project, name, task) abort
     if !a:task.local || a:name !=# 'env'
         return v:false
     endif
     call extend(a:project.env, a:task.fields)
     return v:true
-endfun
+endfunction
 
 
-fun! s:is_projects_list(project, name, task) abort
+function! s:is_projects_list(project, name, task) abort
     if a:task.local || a:name !=# 'projects'
         return v:false
     endif
     let a:project.projects = a:task.fields
     return v:true
-endfun
+endfunction
 
 
-fun! s:is_projects_info(project, name, task) abort
+function! s:is_projects_info(project, name, task) abort
     if !a:task.local || a:name !=# 'info'
         return v:false
     endif
     call extend(a:project.info, a:task.fields)
     return v:true
-endfun
+endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -328,9 +328,9 @@ endfunction
 " Run task
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-fun! async#tasks#run(args) abort
+function! tasks#run(args) abort
     redraw
-    let prj = async#tasks#get(1)
+    let prj = tasks#get(1)
     let tasks = prj.tasks
 
     let a = split(a:args)
@@ -363,12 +363,12 @@ fun! async#tasks#run(args) abort
     else
         call async#cmd(cmd . ' ' . args, mode, useropts, jobopts)
     endif
-endfun
+endfunction
 
 ""
 " Choose the most appropriate command for the task.
 ""
-fun! s:choose_command(task) abort
+function! s:choose_command(task) abort
     let [cmdpat, ft] = ['^command', '\<' . s:ft() . '\>']
 
     " loop all the commands and choose the one with the highest score
@@ -385,28 +385,28 @@ fun! s:choose_command(task) abort
     " clear all commands from task, the chosen command will be set instead
     call filter(a:task.fields, 'v:key !~ cmdpat')
     return best[1] != '' ? best[1] : &makeprg
-endfun
+endfunction
 
 ""
 " If the task defines a cwd, it should be expanded.
 ""
-fun! s:get_cwd(task) abort
+function! s:get_cwd(task) abort
     return has_key(a:task.fields, 'cwd') ? async#expand(a:task.fields.cwd)
                 \                        : getcwd()
-endfun
+endfunction
 
 ""
 " Mode is either 'quickfix', 'buffer', 'terminal', 'external' or 'cmdline'.
 ""
-fun! s:get_cmd_mode(task) abort
+function! s:get_cmd_mode(task) abort
     let mode = filter(copy(a:task.fields), { k,v -> k =~ '^output' })
     return len(mode) > 0 ? values(mode)[0] : 'quickfix'
-endfun
+endfunction
 
 ""
 " quickfix, buffer and terminal modes can have extra options after ':'
 ""
-fun! s:get_mode_opts(mode) abort
+function! s:get_mode_opts(mode) abort
     if match(a:mode, ':') < 0
         return {}
     endif
@@ -430,15 +430,15 @@ fun! s:get_mode_opts(mode) abort
         endif
     endfor
     return opts
-endfun
+endfunction
 
 ""
 " Command line completion for tasks.
 ""
-fun! async#tasks#complete(A, C, P) abort
-    let valid = keys(async#tasks#get().tasks)
+function! tasks#complete(A, C, P) abort
+    let valid = keys(tasks#get().tasks)
     return filter(sort(valid), 'v:val=~#a:A')
-endfun
+endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -448,29 +448,29 @@ endfun
 ""
 " echo current profile in the command line
 ""
-fun! async#tasks#current_profile() abort
-    let profile = async#tasks#get_profile()
+function! tasks#current_profile() abort
+    let profile = tasks#get_profile()
     redraw
     if profile == v:null
         echon s:badge() 'not a managed project'
     else
         echon s:badge() 'current profile is: ' s:color(profile)
     endif
-endfun
+endfunction
 
 ""
 " return current profile, or v:null
 ""
-function! async#tasks#get_profile() abort
-    let p = async#tasks#project(0)
+function! tasks#get_profile() abort
+    let p = tasks#project(0)
     return !empty(p) ? p.profile : v:null
 endfunction
 
 ""
 " set profile to a new value
 ""
-function! async#tasks#set_profile(profile) abort
-    let p = async#tasks#project(0)
+function! tasks#set_profile(profile) abort
+    let p = tasks#project(0)
     if !empty(p)
         let p.profile = a:profile
         return v:true
@@ -482,8 +482,8 @@ endfunction
 ""
 " reset project profile to default
 ""
-function! async#tasks#unset_profile(prj) abort
-    let p = async#tasks#project()
+function! tasks#unset_profile(prj) abort
+    let p = tasks#project()
     if !empty(p)
         let p.profile = 'default'
         return v:true
@@ -548,22 +548,22 @@ endfunction
 ""
 " echo colored text in the command line
 ""
-fun! s:color(txt) abort
+function! s:color(txt) abort
     echohl String | exe 'echon' string(a:txt) | echohl None
     return ''
-endfun
+endfunction
 
 ""
 " badge for messages in the command line
 ""
-fun! s:badge() abort
+function! s:badge() abort
     echohl Delimiter | echon '[tasks] ' | echohl None
     return ''
-endfun
+endfunction
 
-fun! s:ft() abort
+function! s:ft() abort
     return split(&ft, '\.')[0]
-endfun
+endfunction
 
 
 
