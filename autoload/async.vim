@@ -540,7 +540,7 @@ fun! s:job_opts(mode) abort
           \ 'out_cb': function('s:vim_out'),
           \ 'err_cb': function('s:vim_err'),
           \ 'in_io': 'null',
-          \ 'err_io': 'out',
+          \ 'err_io': 'pipe',
           \}
     if a:mode == 'terminal'
       unlet opts.in_io
