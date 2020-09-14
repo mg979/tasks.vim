@@ -105,6 +105,7 @@ fun! async#qfix(args, ...) abort
         \     'nofocus': 0,
         \     'nojump': 0,
         \     'noopen': 0,
+        \     'silent': 0,
         \     'args': a:args,
         \}, a:0 ? a:1 : {})
 
@@ -268,6 +269,10 @@ endfun "}}}
 fun! s:cb_quickfix(job, status, ...) abort
   " {{{1
   let job = s:no_trailing_blanks(async#remove_job(a:job))
+
+  if job.silent
+    let [job.noopen, job.nofocus, job.nojump] = [1, 1, 1]
+  endif
 
   let &errorformat = job.efm
 
