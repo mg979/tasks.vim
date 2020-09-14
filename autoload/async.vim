@@ -78,6 +78,7 @@ endfun "}}}
 " Run a job and populate quickfix with results.
 " @param args:  the args for the command
 " @param ...:   optional dicts as for async#cmd (useropts, jobopts).
+" Returns: the id of the job
 "
 " Valid user options are:
 "  'prg'        makeprg                      default: &makeprg
@@ -119,15 +120,11 @@ fun! async#qfix(args, ...) abort
     let [&makeprg, &grepprg, &errorformat] = [user._prg, user._gprg, user._efm]
   endif
 
-  if !user.grep
-    silent! wall
-  endif
-
   exe (user.locl ? 'lclose' : 'cclose')
 
   let opts = extend({}, a:0 > 1 ? a:2 : {})
   let user.cmd = user.grep ? user.gprg : user.prg
-  call async#cmd(user.cmd, 'quickfix', user, opts)
+  return async#cmd(user.cmd, 'quickfix', user, opts)
 endfun "}}}
 
 
