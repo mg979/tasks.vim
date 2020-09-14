@@ -200,47 +200,63 @@ endfun "}}}
 " job user options specific for buffer mode:
 "  'pos'   position     'split', 'top', 'bottom'(default), 'left', 'right'
 "  'ft'    filetype     ''
-"  'ex'    ex commands  []
 ""=============================================================================
 fun! s:cb_buffer(job, status, ...) abort
   " {{{1
   let job = async#remove_job(a:job)
 
-  " create buffer
-  exe s:get_pos(job, 'bottom') (len(job.out) + len(job.err)) . 'new'
+  let pos = s:get_pos(job, 'bottom')
+  let title = substitute(job.title, '%', '%%', 'g')
+  let has_out = job.out != [] && job.out != ['']
+  let has_err = job.err != [] && job.err != ['']
+
+  if has_out && has_err
+    call s:buf_out(job, pos, title)
+    call s:buf_err(job, '', title)
+  elseif has_out
+    call s:buf_out(job, pos, title)
+  else
+    call s:buf_err(job, pos, title)
+  endif
+  call s:finished_job(job, a:status)
+endfun
+
+""
+" s:buf_out: create buffer with stdout
+""
+fun! s:buf_out(job, pos, title) abort
+  let job = a:job
+  exe a:pos len(job.out) . 'new'
   setlocal bt=nofile bh=wipe noswf nobl
 
-  " set buffer options and execute user commands
-  let &l:statusline = job.title
   if get(job, 'ft', '') != ''
     exe 'setfiletype' job.ft
   endif
-  if has_key(job, 'ex')
-    if type(job.ex) == v:t_string
-      exe job.ex
-    else
-      for l in job.ex
-        exe l
-      endfor
-    endif
-  endif
+  silent put =job.out
+  call s:buf_trim()
+  let &l:statusline = '%#Visual# STDOUT %#StatusLine# ' . a:title
+endfun
 
-  " put text and delete empty lines at top and bottom
-  if job.out != [] && job.out != ['']
-    silent put ='--- stdout'
-    call matchadd('Identifier', '\%' . (line('.')-1) . 'l^--- stdout$')
-    silent put =job.out
-  endif
-  if job.err != [] && job.err != ['']
-    silent put ='--- stderr'
-    call matchadd('WarningMsg', '\%' . (line('.')-1) . 'l^--- stderr$')
-    silent put =job.err
-  endif
+""
+" s:buf_err: create buffer with stderr
+""
+fun! s:buf_err(job, pos, title) abort
+  let job = a:job
+  exe a:pos len(job.err) . 'new'
+  setlocal bt=nofile bh=wipe noswf nobl
+  silent put =job.err
+  call s:buf_trim()
+  let &l:statusline = '%#ErrorMsg# STDERR %#StatusLine# ' . a:title
+endfun
+
+""
+" s:buf_trim: remove blanks from top and bottom of buffer
+""
+fun! s:buf_trim() abort
   if search('\S', 'n')
     while getline('$') == '' | $d _ | endwhile
     while getline(1) == ''   | 1d _ | endwhile
   endif
-  call s:finished_job(job, a:status)
 endfun "}}}
 
 
@@ -682,7 +698,7 @@ fun! s:get_pos(job, default) abort
   elseif pos == 'right' | return 'vertical botright'
   elseif pos == 'left'  | return 'vertical topleft'
   elseif pos == 'top'   | return 'topleft'
-  else                  | return 'split'
+  else                  | return pos
   endif
 endfun
 
