@@ -286,15 +286,15 @@ endfunction
 
 
 function! s:validate_output(key, val) abort
-    if a:val =~ 'cmdline'
+    if a:val =~ '^cmdline'
         return a:val == 'cmdline'
-    elseif a:val =~ 'terminal'
-        return a:val == 'terminal'
-    elseif a:val =~ 'buffer'
+    elseif a:val =~ '^terminal'
+        return a:val =~ '^\vterminal(:('.s:pospat.'))?(:\d+)?$'
+    elseif a:val =~ '^buffer'
         return a:val =~ '^\vbuffer(:('.s:pospat.'))?(:\d+)?$'
-    elseif a:val =~ 'external'
+    elseif a:val =~ '^external'
         return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
-    elseif a:val =~ 'quickfix'
+    elseif a:val =~ '^quickfix'
         let pat = '(:(('.s:optspat.'),?)+)?$'
         return a:val =~ '^\vquickfix' . pat
     endif
@@ -422,7 +422,7 @@ function! s:get_mode_opts(mode) abort
     let opts = {}
 
     for v in vals
-        if can_have_pos && v =~ s:pospat
+        if can_have_pos && v =~ '\v' . s:pospat
             let opts.pos = v
         elseif a:mode =~ '^quickfix'
             " all options have a default of 0
@@ -580,8 +580,8 @@ let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
 
 let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(:\w+)?(\/(\w+,?)+)?\ze]'
-let s:pospat   = '\<top\>|\<bottom\>|\<left\>|\<right\>'
-let s:optspat  = '\<grep\>|\<locl\>|\<append\>|\<nofocus\>|\<nojump\>|\<noopen\>'
+let s:pospat   = '<top>|<bottom>|<left>|<right>'
+let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>'
 
 let s:patterns = {
             \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',
