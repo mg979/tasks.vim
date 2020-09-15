@@ -111,12 +111,13 @@ fun! async#compiler(args, opts, ...) abort
 endfun "}}}
 
 
-""=============================================================================
+""
 " Function: async#stop
 " @param id:   the id of the job to stop. If 0, all jobs are stopped.
 " @param kill: kill rather than terminate. Vim only.
-""=============================================================================
-fun! async#stop(id, kill) abort
+" Returns: the id of the stopped job, or 0 if all jobs are stopped.
+""
+fun! async#stop(id, ...) abort
   " {{{1
   for id in (a:id ? [a:id] : keys(g:async_jobs))
     if has('nvim')
@@ -124,9 +125,12 @@ fun! async#stop(id, kill) abort
       call jobstop(job)
     else
       let job = job_info(g:async_jobs[id].job)
-      call job_stop(job, a:kill ? 'kill' : 'term')
+      call job_stop(job, a:0 ? 'kill' : 'term')
     endif
   endfor
+  if a:id
+    return a:id
+  endif
 endfun "}}}
 
 
@@ -140,26 +144,26 @@ fun! async#list(finished) abort
     call s:list_finished_jobs()
     return
   endif
-  if empty(g:async_jobs)
+  let jobs = []
+  let limit = &columns - 4 - 9 - 8 - 5
+  for id in keys(g:async_jobs)
+    try
+      let J = g:async_jobs[id]
+      let pid = has('nvim') ? jobpid(str2nr(J.job)) : job_info(J.job).process
+      call add(jobs, printf('%-4s%-9s%-8s%-'.limit.'s', id, pid, J.status, J.cmd))
+    catch
+      call async#remove_job(J.job)
+    endtry
+  endfor
+  if empty(jobs)
     echo 'No running jobs'
     return
   endif
   echohl Title
-  echo 'id    process     command'
+  echo 'id  process  status  command'
   echohl None
-  let limit = &columns - 6 - 12 - 5
-  for id in keys(g:async_jobs)
-    try
-      if has('nvim')
-        let job = str2nr(g:async_jobs[id].job)
-        echo printf('%-6s%-12s%-'.limit.'s', id, jobpid(job), g:async_jobs[id].cmd)
-      else
-        let job = job_info(g:async_jobs[id].job)
-        echo printf('%-6s%-12s%-'.limit.'s', id, job.process, job.cmd)
-      endif
-    catch
-      call async#remove_job(job)
-    endtry
+  for j in jobs
+    echo j
   endfor
   let id = input('> ')
   if id != '' && confirm('Stop job with id '.id, "&Yes\n&No") == 0
@@ -709,12 +713,12 @@ fun! s:finished_job(job, status) abort
       call timer_start(1000, { t -> delete(f) })
     endfor
   endif
-  unlet a:job.out
-  unlet a:job.err
-  let g:async_finished_jobs[a:job.id] = a:job
-  let j = g:async_finished_jobs[a:job.id]
+  let j = a:job
+  unlet j.out
+  unlet j.err
   let j.status = a:status
   let j.cmd = type(j.cmd) == v:t_string ? j.cmd : join(j.cmd)
+  let g:async_finished_jobs[j.id] = j
 endfun
 "}}}
 
