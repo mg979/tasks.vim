@@ -295,8 +295,7 @@ function! s:validate_output(key, val) abort
     elseif a:val =~ '^external'
         return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
     elseif a:val =~ '^quickfix'
-        let pat = '(:(('.s:optspat.'),?)+)?$'
-        return a:val =~ '^\vquickfix' . pat
+        return a:val == 'quickfix'
     endif
 endfunction
 
@@ -346,13 +345,15 @@ function! tasks#run(args) abort
     let cmd = s:choose_command(task)
 
     let mode = s:get_cmd_mode(task)
+    let opts = extend(s:get_pos(mode),
+                \     s:get_opts(get(task.fields, 'options', '')))
     let useropts = extend({
                 \ 'prg': cmd,
                 \ 'gprg': cmd,
                 \ 'efm': get(task.fields, 'efm', &errorformat),
                 \ 'compiler': get(task.fields, 'compiler', ''),
                 \ 'ft': get(task.fields, 'syntax', ''),
-                \}, s:get_mode_opts(mode))
+                \}, opts)
     let jobopts = {
                 \ 'env': prj.env,
                 \ 'cwd': s:get_cwd(task),
@@ -404,30 +405,28 @@ function! s:get_cmd_mode(task) abort
 endfunction
 
 ""
-" quickfix, buffer and terminal modes can have extra options after ':'
+" buffer and terminal modes can define position after ':'
 ""
-function! s:get_mode_opts(mode) abort
-    if match(a:mode, ':') < 0
+function! s:get_pos(mode) abort
+    if a:mode !~ '\v^(buffer|terminal):'.s:pospat
+        return {}
+    else
+        return {'pos': substitute(a:mode, '^\w\+:', '', '')}
+    endif
+endfunction
+
+""
+" options defined in the 'options' field
+""
+function! s:get_opts(opts_string) abort
+    if a:opts_string == ''
         return {}
     endif
-    if a:mode =~ '^quickfix'
-        let vals = split(substitute(a:mode, '^quickfix:', '', ''), ',')
-    elseif a:mode =~ '^buffer'
-        let vals = split(substitute(a:mode, '^buffer:', '', ''), ',')
-    elseif a:mode =~ '^terminal'
-        let vals = split(substitute(a:mode, '^terminal:', '', ''), ',')
-    endif
-
-    let can_have_pos = a:mode =~ '^buffer' || a:mode =~ '^terminal'
     let opts = {}
-
+    let vals = split(a:opts_string, ',')
+    " all options have a default of 0
     for v in vals
-        if can_have_pos && v =~ '\v' . s:pospat
-            let opts.pos = v
-        elseif a:mode =~ '^quickfix'
-            " all options have a default of 0
-            let opts[v] = 1
-        endif
+        let opts[v] = 1
     endfor
     return opts
 endfunction
@@ -581,7 +580,7 @@ let s:is_wsl     = exists('$WSLENV')
 
 let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(:\w+)?(\/(\w+,?)+)?\ze]'
 let s:pospat   = '<top>|<bottom>|<left>|<right>'
-let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>'
+let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|<update>|<wall>'
 
 let s:patterns = {
             \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',
@@ -600,6 +599,7 @@ let s:fields = {
             \ 'cwd':         { k,v -> v =~ '\%(\f\|/\)\+' },
             \ 'output':      function('s:validate_output'),
             \ 'compiler':    { k,v -> v =~ '\w\+' },
+            \ 'options':     { k,v -> v =~ '\v(('.s:optspat.'),?)+$' },
             \ 'success':     { k,v -> v:true },
             \ 'fail':        { k,v -> v:true },
             \ 'syntax':      { k,v -> v =~ '\w\+\(\.\w\+\)\?' },
