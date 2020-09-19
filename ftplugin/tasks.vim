@@ -8,7 +8,14 @@ let &commentstring = '# %s'
 au BufWritePost <buffer> call s:update()
 
 fun! s:update() abort
-  if @% != get(g:, 'async_taskfile_local', '.tasks')
+  if expand('%:t') ==# get(g:, 'async_taskfile_global', 'tasks.ini')
+    if has_key(g:tasks, 'global')
+      let g:tasks.global.invalidated = 1
+    else
+      call tasks#global(1)
+    endif
+    return
+  elseif @% != get(g:, 'async_taskfile_local', '.tasks')
     return
   endif
   let prj = expand('%:p:h:t')
