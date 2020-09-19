@@ -42,8 +42,7 @@ let s:id = 0
 ""=============================================================================
 fun! async#cmd(cmd, mode, ...) abort
   " {{{1
-  let useropts = a:0 ? a:1 : {}
-  let useropts.mode = a:mode
+  let useropts = s:user_opts(a:000, a:mode)
   let jobopts = a:0 > 1 ? a:2 : {}
   let expanded = async#expand(a:cmd, get(useropts, 'args', ''))
   let cmd = s:make_cmd(expanded, a:mode, get(jobopts, 'env', {}))
@@ -207,8 +206,7 @@ endfun "}}}
 ""=============================================================================
 fun! s:cb_buffer(job, status, ...) abort
   " {{{1
-  let job = async#remove_job(a:job)
-
+  let job = a:job
   let pos = s:get_pos(job, 'bottom')
   let title = substitute(job.title, '%', '%%', 'g')
   let has_out = job.out != [] && job.out != ['']
@@ -222,7 +220,6 @@ fun! s:cb_buffer(job, status, ...) abort
   else
     call s:buf_err(job, pos, title)
   endif
-  call s:finished_job(job, a:status)
 endfun
 
 ""
@@ -273,8 +270,7 @@ endfun "}}}
 ""=============================================================================
 fun! s:cb_quickfix(job, status, ...) abort
   " {{{1
-  let job = s:no_trailing_blanks(async#remove_job(a:job))
-
+  let job = a:job
   if job.silent
     let [job.noopen, job.nofocus, job.nojump] = [1, 1, 1]
   endif
@@ -312,7 +308,6 @@ fun! s:cb_quickfix(job, status, ...) abort
       call s:echo(['Failure: '. job.cmd], 'WarningMsg')
     endif
   endif
-  call s:finished_job(job, a:status)
 endfun "}}}
 
 
@@ -325,16 +320,13 @@ endfun "}}}
 ""=============================================================================
 fun! s:cb_cmdline(job, status, ...) abort
   " {{{1
-  let job = async#remove_job(a:job)
-
   if a:status
-    call s:echo(job.err, 'ErrorMsg')
-  elseif !empty(job.err)
-    call s:echo(job.err)
+    call s:echo(a:job.err, 'ErrorMsg')
+  elseif !empty(a:job.err)
+    call s:echo(a:job.err)
   else
-    call s:echo(job.out)
+    call s:echo(a:job.out)
   endif
-  call s:finished_job(job, a:status)
 endfun "}}}
 
 
@@ -349,10 +341,8 @@ endfun "}}}
 ""=============================================================================
 fun! s:cb_terminal(job, status, ...) abort
   "{{{1
-  let job = async#remove_job(a:job)
-  let b:job_out = job.out
-  let b:job_err = job.err
-  call s:finished_job(job, a:status)
+  let b:job_out = a:job.out
+  let b:job_err = a:job.err
 endfun "}}}
 
 
@@ -365,8 +355,7 @@ endfun "}}}
 ""=============================================================================
 fun! s:cb_external(job, status, ...) abort
   "{{{1
-  let job = async#remove_job(a:job)
-  call s:finished_job(job, a:status)
+  return
 endfun "}}}
 
 
@@ -424,6 +413,28 @@ fun! async#remove_job(job) abort
 endfun "}}}
 
 
+""=============================================================================
+" Function: async#finish
+" Add finished job to the global table, and store its exit status.
+" @param func:   the actual exit callback
+" @param job:    the finished job id/object
+" @param status: the exit status of the job
+" @param ...:    the event type (passed by nvim, unused)
+""=============================================================================
+fun! async#finish(func, job, status, ...) abort
+  let job = s:no_trailing_blanks(async#remove_job(a:job))
+  call a:func(job, a:status, a:000)
+  if !empty(s:cmdscripts)
+    for f in s:cmdscripts
+      call timer_start(1000, { t -> delete(f) })
+    endfor
+  endif
+  unlet job.out
+  unlet job.err
+  let job.status = a:status
+  let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
+  let g:async_finished_jobs[job.id] = job
+endfun
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -445,6 +456,9 @@ endfun "}}}
 "  'nojump'     don't jump to first item     default: 0
 "  'noopen'     don't open qfix window       default: 0
 "  'silent'     the 3 above combined         default: 0
+"  'repeat'     repeat every n seconds       default: 0
+"  'update'     do :update before cmd        default: 0
+"  'wall'       do :wall before cmd          default: 0
 fun! s:default_opts(useropts)
   return extend({
         \ 'prg': &makeprg,
@@ -452,7 +466,6 @@ fun! s:default_opts(useropts)
         \ 'efm': &errorformat,
         \ 'qfautocmd': '',
         \ 'compiler': '',
-        \ 'repeat': 0,
         \ 'append': 0,
         \ 'locl': 0,
         \ 'grep': 0,
@@ -460,6 +473,9 @@ fun! s:default_opts(useropts)
         \ 'nofocus': 0,
         \ 'nojump': 0,
         \ 'noopen': 0,
+        \ 'repeat': 0,
+        \ 'update': 0,
+        \ 'wall': 0,
         \}, a:useropts)
 endfun
 
@@ -586,7 +602,7 @@ endfun
 fun! s:job_opts(mode) abort
   if has('nvim')
     let opts = {
-          \ "on_exit": function("s:cb_".a:mode,),
+          \ "on_exit": function('async#finish', [function("s:cb_".a:mode)]),
           \ 'on_stdout': function('s:nvim_out'),
           \ 'on_stderr': function('s:nvim_err'),
           \ 'stdout_buffered' : 1,
@@ -594,7 +610,7 @@ fun! s:job_opts(mode) abort
           \}
   else
     let opts = {
-          \ "exit_cb": function("s:cb_".a:mode,),
+          \ "exit_cb": function('async#finish', [function("s:cb_".a:mode)]),
           \ 'out_cb': function('s:vim_out'),
           \ 'err_cb': function('s:vim_err'),
           \ 'in_io': 'null',
@@ -607,6 +623,23 @@ fun! s:job_opts(mode) abort
   endif
   return opts
 endfun
+
+""
+" Create dictionary with user options {{{1
+" @param args: if not empty, command useropts is the first element
+" @param mode: the mode of the command
+" @return: the useropts dictionary
+""
+function! s:user_opts(args, mode) abort
+  let useropts = empty(a:args) ? {} : a:args[0]
+  let useropts.mode = a:mode
+  if get(useropts, 'wall', 0)
+    silent! wall
+  elseif get(useropts, 'update', 0)
+    update
+  endif
+  return useropts
+endfunction
 
 " Scan ids for the requested job {{{1
 
@@ -704,21 +737,6 @@ fun! s:get_pos(job, default) abort
   elseif pos == 'top'   | return 'topleft'
   else                  | return pos
   endif
-endfun
-
-" Add finished job to the global table, and store its exit status {{{1
-fun! s:finished_job(job, status) abort
-  if !empty(s:cmdscripts)
-    for f in s:cmdscripts
-      call timer_start(1000, { t -> delete(f) })
-    endfor
-  endif
-  let j = a:job
-  unlet j.out
-  unlet j.err
-  let j.status = a:status
-  let j.cmd = type(j.cmd) == v:t_string ? j.cmd : join(j.cmd)
-  let g:async_finished_jobs[j.id] = j
 endfun
 "}}}
 
