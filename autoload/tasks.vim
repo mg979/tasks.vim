@@ -370,11 +370,15 @@ endfunction
 " Choose the most appropriate command for the task.
 ""
 function! s:choose_command(task) abort
-    let [cmdpat, ft] = ['^command', '\<' . s:ft() . '\>']
+    let [cmdpat, cmppat, ft] = ['^command', '^compiler', '\<' . s:ft() . '\>']
 
+    " try 'compiler' first, then 'command'
+    let cmds = filter(copy(a:task.fields), 'v:key =~ cmppat')
+    if empty(cmds)
+        let cmds = filter(copy(a:task.fields), 'v:key =~ cmdpat')
+    endif
     " loop all the commands and choose the one with the highest score
     " score is based on specificity for system (/) and filetype (:)
-    let cmds = filter(copy(a:task.fields), 'v:key =~ cmdpat')
     let best = [0, '']
     for cmd in keys(cmds)
         let score = (cmd =~ '/') + (cmd =~ ':')

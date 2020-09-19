@@ -82,7 +82,14 @@ fun! async#qfix(args, ...) abort
 
   " apply compiler settings, but only to get values, then restore original
   if user.compiler != ''
-    exe 'compiler' user.compiler
+    try
+      exe 'compiler' user.compiler
+    catch /E666:/
+      echohl ErrorMsg
+      echo 'E666: compiler not supported:' user.compiler
+      echohl None
+      return v:null
+    endtry
     let [user.prg, user.gprg, user.efm] = [&makeprg, &grepprg, &errorformat]
     let [&makeprg, &grepprg, &errorformat] = [user._prg, user._gprg, user._efm]
   endif
