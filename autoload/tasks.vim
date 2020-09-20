@@ -135,6 +135,7 @@ function! s:parse(path, is_local) abort
                 if match(line, pat) == 0
                     let item = matchstr(line, pat)
                     let current.fields[item] = substitute(line, item . '=', '', '')
+                    break
                 endif
             endfor
         endif
@@ -580,8 +581,9 @@ let s:patterns = {
             \ 'success':      '^success\ze=',
             \ 'fail':         '^fail\ze=',
             \ 'syntax':       '^syntax\ze=',
+            \ 'options':      '^options\ze=',
             \ 'errorformat':  '^errorformat\ze=',
-            \ 'env':          '^[A-Z_]\+\ze=',
+            \ 'env':          '\C^[A-Z_]\+\ze=',
             \}
 
 let s:fields = {
