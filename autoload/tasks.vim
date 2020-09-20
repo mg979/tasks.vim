@@ -62,8 +62,6 @@ function! s:new_project(local) abort
         let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:project_name() }
         let p.profile = 'default'
         let p.info = { 'name': s:project_name() }
-    else
-        let p.projects = {}
     endif
     return p
 endfunction
@@ -166,7 +164,6 @@ endfunction
 function! s:validate_task(project, name, values) abort
     let [p, n, v] = [a:project, a:name, a:values]
     if s:is_env(p, n, v)            | return v:false | endif
-    if s:is_projects_list(p, n, v)  | return v:false | endif
     if s:is_projects_info(p, n, v)  | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(n)           | return v:false | endif
@@ -186,8 +183,6 @@ endfunction
 "   [info]      local to project, it contains informations about the project
 "   [env]       local to project, it contains environmental variables that will
 "               be set before the command is executed
-"   [projects]  in global ini, list of projects that can be started with the
-"               :Project command
 ""
 
 function! s:is_env(project, name, task) abort
@@ -195,15 +190,6 @@ function! s:is_env(project, name, task) abort
         return v:false
     endif
     call extend(a:project.env, a:task.fields)
-    return v:true
-endfunction
-
-
-function! s:is_projects_list(project, name, task) abort
-    if a:task.local || a:name !=# 'projects'
-        return v:false
-    endif
-    let a:project.projects = a:task.fields
     return v:true
 endfunction
 
