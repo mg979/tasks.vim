@@ -130,7 +130,7 @@ fun! async#stop(id, ...) abort
       let job = str2nr(g:async_jobs[id].job)
       call jobstop(job)
     else
-      let job = job_info(g:async_jobs[id].job)
+      let job = g:async_jobs[id].job
       call job_stop(job, a:0 ? 'kill' : 'term')
     endif
   endfor
@@ -172,7 +172,7 @@ fun! async#list(finished) abort
     echo j
   endfor
   let id = input('> ')
-  if id != '' && confirm('Stop job with id '.id, "&Yes\n&No") == 0
+  if id != '' && confirm('Stop job with id '.id, "&Yes\n&No") == 1
     call async#stop(id, 0)
   endif
 endfun
