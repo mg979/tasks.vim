@@ -486,11 +486,10 @@ endfun
 ""
 fun! s:make_cmd(cmd, mode, env) abort
   let cmd = a:cmd
-  let env = s:get_env(a:env)
 
   if a:mode == 'terminal'
-    return s:is_windows ? env . cmd :
-          \has('nvim')  ? ['sh', '-c', env . cmd]
+    return s:is_windows ? s:get_env(a:env) . cmd :
+          \has('nvim')  ? ['sh', '-c', s:get_env(a:env) . cmd]
           \             : ['sh', '-c', cmd]
 
   elseif a:mode == 'external'
