@@ -226,7 +226,7 @@ function! s:failing_conditions(item) abort
     " if conditions are separated by '+' they must all be satisfied
     " if conditions are separated by ',' any of them is enough
     if match(a:item, '/') > 0
-        let l:Has = { cond -> cond !~ '\clinux\|windows\|darwin' && has(cond) }
+        let l:Has = { cond -> cond !~? '\clinux\|windows\|macos\|wsl' && has(cond) }
         let [_, conds] = split(a:item, '/')
         if match(conds, '+') >= 0
             for cond in split(conds, '+')
