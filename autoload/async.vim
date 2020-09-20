@@ -204,14 +204,12 @@ endfun "}}}
 " Function: s:cb_buffer
 " Called when the job has exited, creates a buffer with the output.
 " @param job:    the job object
-" @param status: the exit status of the job
-" @param ...:    the event type (passed by nvim, unused)
 "
 " job user options specific for buffer mode:
 "  'pos'   position     'split', 'top', 'bottom'(default), 'left', 'right'
 "  'ft'    filetype     ''
 ""=============================================================================
-fun! s:cb_buffer(job, status, ...) abort
+fun! s:cb_buffer(job) abort
   " {{{1
   let job = a:job
   let pos = s:get_pos(job, 'bottom')
@@ -272,12 +270,10 @@ endfun "}}}
 " Function: s:cb_make
 " Called when the job has exited, populates the qfix list
 " @param job:    the job object
-" @param status: the exit status of the job
-" @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
-fun! s:cb_quickfix(job, status, ...) abort
+fun! s:cb_quickfix(job) abort
   " {{{1
-  let job = a:job
+  let [job, status] = [a:job, a:job.status]
   if job.silent
     let [job.noopen, job.nofocus, job.nojump] = [1, 1, 1]
   endif
@@ -294,14 +290,14 @@ fun! s:cb_quickfix(job, status, ...) abort
   let &errorformat = job._efm
 
   call setqflist([], "r", job)
-  if job.grep && a:status
-    if a:status > 1 || a:status == 1 && !empty(job.err)
+  if job.grep && status
+    if status > 1 || status == 1 && !empty(job.err)
       call s:echo([job.cmd] + job.err, 'WarningMsg')
-    elseif a:status == 1
+    elseif status == 1
       echo 'No results'
     endif
   else
-    if !job.grep && !a:status
+    if !job.grep && !status
       echo "Success:" job.cmd
     elseif !job.noopen
       silent redraw!
@@ -322,12 +318,10 @@ endfun "}}}
 " Function: s:cb_cmdline
 " Echo the output of an asynchronous shell command to the command line.
 " @param job:    the job object
-" @param status: the exit status of the job
-" @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
-fun! s:cb_cmdline(job, status, ...) abort
+fun! s:cb_cmdline(job) abort
   " {{{1
-  if a:status
+  if a:job.status
     call s:echo(a:job.err, 'ErrorMsg')
   elseif !empty(a:job.err)
     call s:echo(a:job.err)
@@ -341,12 +335,10 @@ endfun "}}}
 " Function: s:cb_terminal
 " Remove the job but set buffer variables so that out/err are saved.
 " @param job:    the job object
-" @param status: the exit status of the job
-" @param ...:    the event type (passed by nvim, unused)
 "
 " job.pos can be: 'split'(default), 'top', 'bottom', 'left', 'right'
 ""=============================================================================
-fun! s:cb_terminal(job, status, ...) abort
+fun! s:cb_terminal(job) abort
   "{{{1
   let b:job_out = a:job.out
   let b:job_err = a:job.err
@@ -357,10 +349,8 @@ endfun "}}}
 " Function: s:cb_external
 " Not much to do here... there's nothing useful that can be saved.
 " @param job:    the job object
-" @param status: the exit status of the job
-" @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
-fun! s:cb_external(job, status, ...) abort
+fun! s:cb_external(job) abort
   "{{{1
   return
 endfun "}}}
@@ -430,7 +420,8 @@ endfun "}}}
 ""=============================================================================
 fun! async#finish(func, job, status, ...) abort
   let job = s:no_trailing_blanks(async#remove_job(a:job))
-  call a:func(job, a:status, a:000)
+  let job.status = a:status
+  call a:func(job)
   if !empty(s:cmdscripts)
     for f in s:cmdscripts
       call timer_start(1000, { t -> delete(f) })
@@ -438,7 +429,6 @@ fun! async#finish(func, job, status, ...) abort
   endif
   unlet job.out
   unlet job.err
-  let job.status = a:status
   let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   let g:async_finished_jobs[job.id] = job
 endfun
