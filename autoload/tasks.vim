@@ -381,10 +381,21 @@ endfunction
 
 ""
 " If the task defines a cwd, it should be expanded.
+" Expand also $ROOT and $PRJNAME because they aren't set in vim environment.
 ""
 function! s:get_cwd(task) abort
-    return has_key(a:task.fields, 'cwd') ? async#expand(a:task.fields.cwd)
-                \                        : getcwd()
+    if has_key(a:task.fields, 'cwd')
+        let cwd = async#expand(a:task.fields.cwd)
+        if s:is_windows
+            let cwd = substitute(cwd, '%\([A-Z_]\+\)%', '$\1', 'g')
+        endif
+        let cwd = substitute(cwd, '\$ROOT\>', '\=getcwd()', 'g')
+        let cwd = substitute(cwd, '\$PRJNAME\>', '\=s:project_name()', 'g')
+        let cwd = substitute(cwd, '\(\$[A-Z_]\+\)\>', '\=expand(submatch(1))', 'g')
+        return cwd
+    else
+        return getcwd()
+    endif
 endfunction
 
 ""
