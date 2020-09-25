@@ -56,7 +56,7 @@ fun! async#cmd(cmd, mode, ...) abort
           \ 'job': job, 'cmd': cmd, 'opts': opts,
           \ 'id': s:id, 'pid': s:pid(job), 'title': a:cmd,
           \ 'status': 'running', 'out': [], 'err': [],
-          \}, s:default_opts(useropts))
+          \}, useropts)
     return s:id
   endif
 endfun "}}}
@@ -70,7 +70,8 @@ endfun "}}}
 ""=============================================================================
 fun! async#qfix(args, ...) abort
   "{{{1
-  let user = extend(s:default_opts(a:0 ? a:1 : {}), {'args': a:args})
+  let user = extend(s:default_opts(), a:0 ? a:1 : {})
+  let user.args = a:args
 
   " pattern for QuickFixCmdPre and QuickFixCmdPost
   if user.qfautocmd == ''
@@ -456,8 +457,8 @@ endfun
 "  'repeat'     repeat every n seconds       default: 0
 "  'update'     do :update before cmd        default: 0
 "  'wall'       do :wall before cmd          default: 0
-fun! s:default_opts(useropts)
-  return extend({
+fun! s:default_opts()
+  return {
         \ 'prg': &makeprg,
         \ 'gprg': &grepprg,
         \ 'efm': &errorformat,
@@ -473,8 +474,29 @@ fun! s:default_opts(useropts)
         \ 'repeat': 0,
         \ 'update': 0,
         \ 'wall': 0,
-        \}, a:useropts)
+        \}
 endfun
+
+""
+" Create dictionary with user options {{{1
+" @param args: if not empty, useropts dict is the first element
+"              if a third arg is present, it's the exit callback
+" @param mode: the mode of the command
+" @return: the useropts dictionary
+""
+function! s:user_opts(args, mode) abort
+  let useropts = extend(s:default_opts(), empty(a:args) ? {} : a:args[0])
+  let useropts.mode = a:mode
+  if len(a:args) > 2
+    let useropts.on_exit = a:args[2]
+  endif
+  if get(useropts, 'wall', 0)
+    silent! wall
+  elseif get(useropts, 'update', 0)
+    update
+  endif
+  return useropts
+endfunction
 
 " Job command {{{1
 ""
@@ -622,23 +644,6 @@ fun! s:job_opts(mode) abort
   endif
   return opts
 endfun
-
-""
-" Create dictionary with user options {{{1
-" @param args: if not empty, command useropts is the first element
-" @param mode: the mode of the command
-" @return: the useropts dictionary
-""
-function! s:user_opts(args, mode) abort
-  let useropts = empty(a:args) ? {} : a:args[0]
-  let useropts.mode = a:mode
-  if get(useropts, 'wall', 0)
-    silent! wall
-  elseif get(useropts, 'update', 0)
-    update
-  endif
-  return useropts
-endfunction
 
 " Scan ids for the requested job {{{1
 
