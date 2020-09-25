@@ -583,7 +583,10 @@ fun! s:term_start(cmd, opts, useropts) abort
     new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
   endif
   let job = has('nvim') ? termopen(a:cmd, a:opts) : term_getjob(term_start(a:cmd, a:opts))
-  exe 'wincmd' {'top': 'K', 'bottom': 'J', 'left': 'H', 'right': 'L'}[a:useropts.pos]
+  let pos = get(a:useropts, 'pos', 'split')
+  if index(['top', 'bottom', 'left', 'right'], pos) >= 0
+    exe 'wincmd' {'top': 'K', 'bottom': 'J', 'left': 'H', 'right': 'L'}[pos]
+  endif
   if has('nvim') && get(a:useropts, 'startinsert', 0)
     startinsert
   endif
