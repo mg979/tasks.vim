@@ -286,6 +286,11 @@ fun! s:cb_quickfix(job) abort
   let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
   let cxpr .= 'expr'
   exe cxpr 'job.out + job.err'
+  if job.locl
+    call setloclist(0, [], 'r', {'title': job.cmd})
+  else
+    call setqflist([], 'r', {'title': job.cmd})
+  endif
   exe 'silent doautocmd QuickFixCmdPost' job.qfautocmd
 
   let &errorformat = job._efm
