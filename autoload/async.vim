@@ -515,10 +515,10 @@ fun! s:make_cmd(cmd, mode, env) abort
           \             : ['sh', '-c', cmd]
 
   elseif a:mode == 'external'
-    return s:is_windows ? 'start cmd.exe /K ' . s:tempscript(a:cmd, a:env, 0)
+    return s:is_windows ? 'start cmd.exe /K ' . s:tempscript(cmd, a:env, 0)
           \             : s:unix_term(a:env, cmd)
   else
-    return s:is_windows ? 'cmd.exe /C ' . cmd
+    return s:is_windows ? 'cmd.exe /C ' . s:get_env(a:env) . cmd
           \             : ['sh', '-c', cmd]
   endif
 endfun
