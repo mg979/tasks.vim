@@ -79,7 +79,7 @@ fun! async#qfix(args, ...) abort
   endif
 
   " store old settings
-  let [user._prg, user._gprg, user._efm] = [&makeprg, &grepprg, &errorformat]
+  let [user._prg, user._gprg, user._efm, user._gfm] = [&makeprg, &grepprg, &errorformat, &grepformat]
 
   " apply compiler settings, but only to get values, then restore original
   if user.compiler != ''
@@ -91,8 +91,8 @@ fun! async#qfix(args, ...) abort
       echohl None
       return v:null
     endtry
-    let [user.prg, user.gprg, user.efm] = [&makeprg, &grepprg, &errorformat]
-    let [&makeprg, &grepprg, &errorformat] = [user._prg, user._gprg, user._efm]
+    let [user.prg, user.gprg, user.efm, user.gfm] = [&makeprg, &grepprg, &errorformat, &grepformat]
+    let [&makeprg, &grepprg, &errorformat, &grepformat] = [user._prg, user._gprg, user._efm, user._gfm]
   endif
 
   exe (user.locl ? 'lclose' : 'cclose')
@@ -279,7 +279,7 @@ fun! s:cb_quickfix(job) abort
     let [job.noopen, job.nofocus, job.nojump] = [1, 1, 1]
   endif
 
-  let &errorformat = job.efm
+  let &errorformat = job.grep ? job.gfm : job.efm
 
   exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
   let cxpr =  job.locl ? 'l' : 'c'
@@ -445,6 +445,7 @@ endfun
 "  'prg'        makeprg                      default: &makeprg
 "  'gprg'       grepprg                      default: &grepprg
 "  'efm'        errorformat                  default: &errorformat
+"  'gfm'        grepformat                   default: &grepformat
 "  'compiler'   run :compiler x              default: ''
 "  'qfautocmd'  quickfix autocommands        default: ''
 "  'env'        environmental variables      default: {}
@@ -462,6 +463,7 @@ fun! s:default_opts()
         \ 'prg': &makeprg,
         \ 'gprg': &grepprg,
         \ 'efm': &errorformat,
+        \ 'gfm': &grepformat,
         \ 'qfautocmd': '',
         \ 'compiler': '',
         \ 'append': 0,
