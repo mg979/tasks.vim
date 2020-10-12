@@ -317,7 +317,23 @@ endfunction
 function! tasks#run(args) abort
     redraw
     let prj = tasks#get(1)
-    let tasks = prj.tasks
+    if empty(prj)
+        let root = s:find_root()
+        if s:change_root(root)
+            lcd `=root`
+            let prj = tasks#get(1)
+        else
+            redraw
+            echon s:badge() 'no tasks'
+            return
+        endif
+    endif
+    try
+        let tasks = prj.tasks
+    catch
+        echon s:badge(1) 'error loading tasks'
+        return
+    endtry
 
     let a = split(a:args)
     let name = a[0]
@@ -407,7 +423,7 @@ function! s:get_cmd_mode(task) abort
 endfunction
 
 ""
-" buffer and terminal modes can define position after ':'
+" Buffer and terminal modes can define position after ':'
 ""
 function! s:get_pos(mode) abort
     if a:mode !~ '\v^(buffer|terminal):'.s:pospat
@@ -418,7 +434,7 @@ function! s:get_pos(mode) abort
 endfunction
 
 ""
-" options defined in the 'options' field
+" Options defined in the 'options' field.
 ""
 function! s:get_opts(opts_string) abort
     if a:opts_string == ''
@@ -447,7 +463,7 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""
-" echo current profile in the command line
+" Echo current profile in the command line.
 ""
 function! tasks#current_profile() abort
     let profile = tasks#get_profile()
@@ -460,7 +476,7 @@ function! tasks#current_profile() abort
 endfunction
 
 ""
-" return current profile, or v:null
+" Return current profile, or v:null.
 ""
 function! tasks#get_profile() abort
     let p = tasks#project(0)
@@ -468,7 +484,7 @@ function! tasks#get_profile() abort
 endfunction
 
 ""
-" set profile to a new value
+" Set profile to a new value.
 ""
 function! tasks#set_profile(profile) abort
     let p = tasks#project(0)
@@ -481,7 +497,7 @@ function! tasks#set_profile(profile) abort
 endfunction
 
 ""
-" reset project profile to default
+" Reset project profile to default.
 ""
 function! tasks#unset_profile(prj) abort
     let p = tasks#project()
@@ -501,7 +517,7 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""
-" the path for the global configuration
+" Path for the global configuration.
 ""
 function! s:get_global_ini() abort
     if exists('s:global_ini') && s:global_ini != ''
@@ -527,7 +543,7 @@ function! s:get_global_ini() abort
 endfunction
 
 ""
-" the path for the project configuration
+" Path for the project configuration.
 ""
 function! s:get_local_ini() abort
     return get(g:, 'async_taskfile_local', '.tasks')
@@ -540,14 +556,14 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""
-" the basename of the working directory
+" Basename of the working directory.
 ""
 function! s:project_name() abort
     return fnamemodify(getcwd(), ':t')
 endfunction
 
 ""
-" echo colored text in the command line
+" Echo colored text in the command line.
 ""
 function! s:color(txt) abort
     echohl String | exe 'echon' string(a:txt) | echohl None
@@ -555,15 +571,48 @@ function! s:color(txt) abort
 endfunction
 
 ""
-" badge for messages in the command line
+" Badge for messages in the command line.
 ""
-function! s:badge() abort
-    echohl Delimiter | echon '[tasks] ' | echohl None
+function! s:badge(...) abort
+    if a:0
+        echohl WarningMsg | echon '[tasks] ' | echohl None
+    else
+        echohl Delimiter  | echon '[tasks] ' | echohl None
+    endif
     return ''
 endfunction
 
+""
+" Base filetype.
+""
 function! s:ft() abort
     return split(&ft, '\.')[0]
+endfunction
+
+""
+" Search recursively for a local tasks file in parent directories.
+""
+function! s:find_root() abort
+    let dir = expand('%:p:h')
+    let fname = s:get_local_ini()
+    while v:true
+        if filereadable(dir . '/' . fname )
+            return dir
+        elseif fnamemodify(dir, ':p:h:h') == dir
+            break
+        else
+            let dir = fnamemodify(dir, ':p:h:h')
+        endif
+    endwhile
+    return v:null
+endfunction
+
+""
+" Confirm root change.
+""
+function! s:change_root(root) abort
+    return a:root != v:null &&
+                \ confirm('Change directory to ' . a:root . '?', "&Yes\n&No") == 1
 endfunction
 
 
