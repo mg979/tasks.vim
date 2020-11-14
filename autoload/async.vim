@@ -189,7 +189,8 @@ fun! s:list_finished_jobs() abort
   let J = g:async_finished_jobs
   for id in keys(J)
     let limit = &columns - 4 - 9 - 8 - 5
-    echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, J[id].cmd)
+    let cmd = async#expand(J[id].cmd)
+    echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, cmd)
   endfor
 endfun "}}}
 
