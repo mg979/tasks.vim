@@ -665,6 +665,7 @@ fun! s:get_job(job) abort
       return g:async_jobs[id]
     endif
   endfor
+  return {'out': [], 'err': []}
 endfun
 
 ""=============================================================================
@@ -678,6 +679,7 @@ fun! s:get_job_with_channel(channel) abort
       return g:async_jobs[id]
     endif
   endfor
+  return {'out': [], 'err': []}
 endfun
 
 " Output handlers {{{1
