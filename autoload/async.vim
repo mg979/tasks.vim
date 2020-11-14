@@ -616,7 +616,7 @@ fun! s:term_start(cmd, opts, useropts) abort
   if index(['top', 'bottom', 'left', 'right'], pos) >= 0
     exe 'wincmd' {'top': 'K', 'bottom': 'J', 'left': 'H', 'right': 'L'}[pos]
   endif
-  if has('nvim') && get(a:useropts, 'startinsert', 0)
+  if has('nvim') && get(a:useropts, 'startinsert', 1)
     startinsert
   endif
   return job
