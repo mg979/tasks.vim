@@ -118,12 +118,12 @@ fun! async#compiler(args, opts, ...) abort
 endfun "}}}
 
 
-""
+""=============================================================================
 " Function: async#stop
 " @param id:   the id of the job to stop. If 0, all jobs are stopped.
 " @param kill: kill rather than terminate. Vim only.
 " Returns: the id of the stopped job, or 0 if all jobs are stopped.
-""
+""=============================================================================
 fun! async#stop(id, ...) abort
   " {{{1
   for id in (a:id ? [a:id] : keys(g:async_jobs))
@@ -425,6 +425,7 @@ endfun "}}}
 " @param ...:    the event type (passed by nvim, unused)
 ""=============================================================================
 fun! async#finish(func, job, status, ...) abort
+  "{{{1
   let job = s:no_trailing_blanks(async#remove_job(a:job))
   let job.status = a:status
   call a:func(job)
@@ -437,7 +438,7 @@ fun! async#finish(func, job, status, ...) abort
   unlet job.err
   let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   let g:async_finished_jobs[job.id] = job
-endfun
+endfun "}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
