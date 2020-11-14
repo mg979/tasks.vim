@@ -49,7 +49,7 @@ fun! async#cmd(cmd, mode, ...) abort
   if empty(cmd)
     return 0
   else
-    let opts = extend(s:job_opts(a:mode), jobopts)
+    let opts = extend(s:job_opts(useropts), jobopts)
     let job = s:job_start(cmd, opts, useropts)
     let s:id += 1
     let g:async_jobs[s:id] = extend({
@@ -624,13 +624,14 @@ endfun
 
 
 " Create dictionary with job options {{{1
-" @param mode: the output mode
+" @param useropts: the user options dictionary
 " @return: the job options dictionary
 ""
-fun! s:job_opts(mode) abort
+fun! s:job_opts(useropts) abort
+  let Callback = get(a:useropts, 'on_exit', function('s:cb_' . a:useropts.mode))
   if has('nvim')
     let opts = {
-          \ "on_exit": function('async#finish', [function("s:cb_".a:mode)]),
+          \ "on_exit": function('async#finish', [Callback]),
           \ 'on_stdout': function('s:nvim_out'),
           \ 'on_stderr': function('s:nvim_err'),
           \ 'stdout_buffered' : 1,
@@ -638,16 +639,12 @@ fun! s:job_opts(mode) abort
           \}
   else
     let opts = {
-          \ "exit_cb": function('async#finish', [function("s:cb_".a:mode)]),
+          \ "exit_cb": function('async#finish', [Callback]),
           \ 'out_cb': function('s:vim_out'),
           \ 'err_cb': function('s:vim_err'),
-          \ 'in_io': 'null',
+          \ 'in_io': a:useropts.grep ? 'null' : 'pipe',
           \ 'err_io': 'pipe',
           \}
-    if a:mode == 'terminal'
-      unlet opts.in_io
-      unlet opts.err_io
-    endif
   endif
   return opts
 endfun
