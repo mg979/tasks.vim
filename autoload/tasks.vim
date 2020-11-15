@@ -515,25 +515,27 @@ function! tasks#list(as_dict) abort
         call s:tasks_as_dict()
         return
     endif
-    let dict = tasks#get(1)
-    if empty(dict)
+    let prj = tasks#get(1)
+    if empty(prj)
         redraw
         echon s:badge() 'no tasks'
         return
     endif
     echohl Comment
-    echo "Task\t\t\tType\t\tOutput\t\tCommand"
-    for k in keys(dict.tasks)
+    echo "Task\t\t\tProfile\t\tOutput\t\tCommand"
+    for t in keys(prj.tasks)
         echohl Constant
-        echo k . repeat(' ', 24 - strlen(k))
+        echo t . repeat(' ', 24 - strlen(t))
         echohl String
-        let t = dict.tasks[k].local ? 'project' : 'global'
-        echon t . repeat(' ', 16 - strlen(t))
+        let p = prj.tasks[t].local ? prj.profile : 'global'
+        echon p . repeat(' ', 16 - strlen(p))
         echohl PreProc
-        let out = split(get(dict.tasks[k].fields, 'output', 'quickfix'), ':')[0]
+        let out = split(get(prj.tasks[t].fields, 'output', 'quickfix'), ':')[0]
         echon out . repeat(' ', 16 - strlen(out))
         echohl None
-        echon s:choose_command(dict.tasks[k])
+        let cmd = s:choose_command(prj.tasks[t])
+        let n = &columns - 66 < strlen(cmd) ? '' : 'n'
+        exe 'echo' . n string(cmd)
     endfor
     echohl None
 endfunction
@@ -577,10 +579,26 @@ function! tasks#choose() abort
                 \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
                 \9: "\<F9>"}
     let dict = {}
+    echohl Comment
+    echo "Key\tTask\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
-        let k = '<F'.i.'>'
-        echohl Special  | echo k  | echohl None  | echon ' ' . t
         let dict[Keys[i]] = t
+        echohl Special
+        echo '<F'.i.'>' . "\t"
+        echohl Constant
+        echon t . repeat(' ', 24 - strlen(t))
+        echohl String
+        let l = prj.tasks[t].local ? prj.profile : 'global'
+        echon l . repeat(' ', 16 - strlen(l))
+        echohl PreProc
+        let out = split(get(prj.tasks[t].fields, 'output', 'quickfix'), ':')[0]
+        echon out . repeat(' ', 16 - strlen(out))
+        echohl None
+        let cmd = s:choose_command(prj.tasks[t])
+        if &columns - 74 < strlen(cmd)
+            let cmd = cmd[:(&columns - 74)] . '…'
+        endif
+        echon cmd
         let i += 1
     endfor
     echo ''
