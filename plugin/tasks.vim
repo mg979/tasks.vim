@@ -28,38 +28,9 @@ command! -nargs=1 -complete=customlist,tasks#complete Task call tasks#run(<q-arg
 command! -bar -bang Tasks call tasks#list(<bang>0)
 
 if get(g:, 'tasks_mappings', 1)
-    let s:main = get(g:, 'tasks_main_key', '<F6>')
-    exe 'nnoremap <silent>' s:main ':<C-u>call <sid>choose_task()<cr>'
+    let s:key = get(g:, 'tasks_main_key', '<F6>')
+    exe 'nnoremap <silent>' s:key ':<C-u>call tasks#choose()<cr>'
 endif
-
-function! s:choose_task() abort
-    if &ft == 'vim'
-        update
-        source %
-        redraw
-        echo ':source %'
-        return
-    endif
-    echohl Special | echo '<F5>' | echohl None | echon ' project-run'
-    echohl Special | echo '<F6>' | echohl None | echon ' project-build'
-    echohl Special | echo '<F7>' | echohl None | echon ' file-run'
-    echohl Special | echo '<F8>' | echohl None | echon ' file-build'
-    echo ''
-    let ch = getchar()
-    if ch == "\<F5>"
-        Task project-run
-    elseif ch == "\<F6>"
-        Task project-build
-    elseif ch == "\<F7>"
-        Task file-run
-    elseif ch == "\<F8>"
-        Task file-build
-    else
-        redraw
-    endif
-endfunction
-
-
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

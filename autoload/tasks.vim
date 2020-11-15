@@ -562,6 +562,40 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Choose task with mapping
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+function! tasks#choose() abort
+    let i = 1
+    let prj = tasks#get(1)
+    if empty(prj)
+        redraw
+        echon s:badge() 'no tasks'
+        return
+    endif
+    let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
+                \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
+                \9: "\<F9>"}
+    let dict = {}
+    for t in keys(prj.tasks)
+        let k = '<F'.i.'>'
+        echohl Special  | echo k  | echohl None  | echon ' ' . t
+        let dict[Keys[i]] = t
+        let i += 1
+    endfor
+    echo ''
+    let ch = getchar()
+    if index(keys(dict), ch) >= 0
+        exe 'Task' dict[ch]
+    else
+        redraw
+    endif
+endfunction
+
+
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Get configuration files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
