@@ -27,10 +27,7 @@ command! -nargs=1 -complete=customlist,tasks#complete Task call tasks#run(<q-arg
 
 command! -bar -bang Tasks call tasks#list(<bang>0)
 
-if get(g:, 'tasks_mappings', 1)
-    let s:key = get(g:, 'tasks_main_key', '<F6>')
-    exe 'nnoremap <silent>' s:key ':<C-u>call tasks#choose()<cr>'
-endif
+nnoremap <silent> <Plug>(Tasks-Choose) :<C-u>call tasks#choose()<cr>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
