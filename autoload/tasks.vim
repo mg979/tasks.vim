@@ -511,6 +511,60 @@ endfunction
 
 
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" List tasks
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+function! tasks#list(as_dict) abort
+    if a:as_dict
+        call s:tasks_as_dict()
+        return
+    endif
+    let dict = tasks#get(1)
+    if empty(dict)
+        redraw
+        echon s:badge() 'no tasks'
+        return
+    endif
+    echohl Comment
+    echo "Task\t\t\tType\t\tOutput\t\tCommand"
+    for k in keys(dict.tasks)
+        echohl Constant
+        echo k . repeat(' ', 24 - strlen(k))
+        echohl String
+        let t = dict.tasks[k].local ? 'project' : 'global'
+        echon t . repeat(' ', 16 - strlen(t))
+        echohl PreProc
+        let out = split(get(dict.tasks[k].fields, 'output', 'quickfix'), ':')[0]
+        echon out . repeat(' ', 16 - strlen(out))
+        echohl None
+        echon s:choose_command(dict.tasks[k])
+    endfor
+    echohl None
+endfunction
+
+function! s:tasks_as_dict() abort
+    let py =        executable('python3') ? 'python3'
+                \ : executable('python')  ? 'python' : ''
+    if py == ''
+        redraw
+        echon s:badge() 'no python executable found in $PATH'
+        return
+    endif
+    let [ft, f] = [&ft, @%]
+    let json = json_encode(tasks#get(1))
+    vnew +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
+    silent! XTabNameBuffer Tasks
+    wincmd H
+    put =json
+    1d _
+    exe '%!' . py . ' -m json.tool'
+    setfiletype json
+    let &l:statusline = '%#PmenuSel# Tasks %#Pmenu# ft=' .
+                \       ft . ' %#Statusline# ' . f
+endfunction
+
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Get configuration files
@@ -586,7 +640,7 @@ endfunction
 " Base filetype.
 ""
 function! s:ft() abort
-    return split(&ft, '\.')[0]
+    return empty(&ft) ? '' : split(&ft, '\.')[0]
 endfunction
 
 ""

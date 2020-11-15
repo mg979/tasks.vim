@@ -25,6 +25,8 @@ let g:tasks = {}
 
 command! -nargs=1 -complete=customlist,tasks#complete Task call tasks#run(<q-args>)
 
+command! -bar -bang Tasks call tasks#list(<bang>0)
+
 if get(g:, 'tasks_mappings', 1)
     let s:main = get(g:, 'tasks_main_key', '<F6>')
     exe 'nnoremap <silent>' s:main ':<C-u>call <sid>choose_task()<cr>'
