@@ -78,13 +78,13 @@ endfunction
 
 
 function! tasks#project(reload) abort
-    let f = s:get_local_ini()
-    if !filereadable(f)
-        return {}
-    endif
     let prj = s:project_name()
     if !a:reload && has_key(g:tasks, prj) && !g:tasks[prj].invalidated
         return g:tasks[prj]
+    endif
+    let f = s:get_local_ini()
+    if !filereadable(f)
+        return {}
     endif
     let g:tasks[prj] = s:parse(f, 1)
     return g:tasks[prj]
@@ -92,12 +92,12 @@ endfunction
 
 
 function! tasks#global(reload) abort
+    if !a:reload && has_key(g:tasks, 'global') && !g:tasks.global.invalidated
+        return g:tasks.global
+    endif
     let f = s:get_global_ini()
     if !filereadable(f)
         return {}
-    endif
-    if !a:reload && has_key(g:tasks, 'global') && !g:tasks.global.invalidated
-        return g:tasks.global
     endif
     let g:tasks.global = s:parse(f, 0)
     return g:tasks.global
@@ -322,19 +322,14 @@ function! tasks#run(args) abort
         if s:change_root(root)
             lcd `=root`
             let prj = tasks#get(1)
-        else
-            redraw
-            echon s:badge() 'no tasks'
-            return
         endif
     endif
-    try
-        let tasks = prj.tasks
-    catch
-        echon s:badge(1) 'error loading tasks'
+    if empty(prj)
+        redraw
+        echon s:badge() 'no tasks'
         return
-    endtry
-
+    endif
+    let tasks = prj.tasks
     let a = split(a:args)
     let name = a[0]
     let args = len(a) > 1 ? join(a[1:]) : ''
@@ -453,7 +448,7 @@ endfunction
 " Command line completion for tasks.
 ""
 function! tasks#complete(A, C, P) abort
-    let valid = keys(tasks#get().tasks)
+    let valid = keys(get(tasks#get(), 'tasks', {}))
     return filter(sort(valid), 'v:val=~#a:A')
 endfunction
 
