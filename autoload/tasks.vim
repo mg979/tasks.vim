@@ -301,7 +301,9 @@ function! s:validate_command(key, val) abort
     if match(a:key, '/') > 0 && s:failing_conditions(a:key)
         return v:false
     endif
+    " / is the delimiter for systems and other conditions to satisfy
     let k = substitute(a:key, '/.*', '', '')
+    " : is the delimiter for the filetype filter
     if match(k, ':') > 0
         return s:valid_filetype(k)
     endif
@@ -314,6 +316,9 @@ endfunction
 " Run task
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+""
+" Main command to run a task. Will call async#cmd.
+""
 function! tasks#run(args) abort
     redraw
     let prj = tasks#get(1)
@@ -509,9 +514,12 @@ endfunction
 " List tasks
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! tasks#list(as_dict) abort
-    if a:as_dict
-        call s:tasks_as_dict()
+""
+" Display tasks in the command line, or in json format.
+""
+function! tasks#list(as_json) abort
+    if a:as_json
+        call s:tasks_as_json()
         return
     endif
     let prj = tasks#get(1)
@@ -538,7 +546,10 @@ function! tasks#list(as_dict) abort
     echohl None
 endfunction
 
-function! s:tasks_as_dict() abort
+""
+" Display tasks in a buffer, in json format.
+""
+function! s:tasks_as_json() abort
     let py =        executable('python3') ? 'python3'
                 \ : executable('python')  ? 'python' : ''
     if py == ''
@@ -564,6 +575,9 @@ endfunction
 " Choose task with mapping
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+""
+" Choose among available tasks (called with mapping).
+""
 function! tasks#choose() abort
     let i = 1
     let prj = tasks#get(1)
