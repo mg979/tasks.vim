@@ -141,7 +141,7 @@ function! s:parse(path, is_local) abort
         endif
     endfor
     call filter(p.tasks, function('s:validate_task', [p]))
-    return p
+    return s:clear_tasks_names(p)
 endfunction
 
 
@@ -671,6 +671,32 @@ endfunction
 ""
 function! s:project_name() abort
     return fnamemodify(getcwd(), ':t')
+endfunction
+
+function! s:clear_tasks_names(prj) abort
+    if empty(a:prj)
+        return {}
+    endif
+    let renamed_tasks = {}
+    for t in keys(a:prj.tasks)
+        let rt = s:task_name(t)
+        if t != rt
+            let renamed_tasks[rt] = remove(a:prj.tasks, t)
+        endif
+    endfor
+    call extend(a:prj.tasks, renamed_tasks)
+    return a:prj
+endfunction
+
+""
+" Strip the conditions modifiers from the task name.
+""
+function! s:task_name(taskname) abort
+    let tn = a:taskname
+    if match(tn, '/') > 0
+        let tn = split(tn, '/')[0]
+    endif
+    return tn
 endfunction
 
 ""
