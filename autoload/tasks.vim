@@ -325,7 +325,6 @@ function! tasks#run(args) abort
         endif
     endif
     if empty(prj)
-        redraw
         echon s:badge() 'no tasks'
         return
     endif
@@ -517,7 +516,6 @@ function! tasks#list(as_dict) abort
     endif
     let prj = tasks#get(1)
     if empty(prj)
-        redraw
         echon s:badge() 'no tasks'
         return
     endif
@@ -544,7 +542,6 @@ function! s:tasks_as_dict() abort
     let py =        executable('python3') ? 'python3'
                 \ : executable('python')  ? 'python' : ''
     if py == ''
-        redraw
         echon s:badge() 'no python executable found in $PATH'
         return
     endif
@@ -571,7 +568,6 @@ function! tasks#choose() abort
     let i = 1
     let prj = tasks#get(1)
     if empty(prj)
-        redraw
         echon s:badge() 'no tasks'
         return
     endif
@@ -675,6 +671,7 @@ endfunction
 " Badge for messages in the command line.
 ""
 function! s:badge(...) abort
+    redraw
     if a:0
         echohl WarningMsg | echon '[tasks] ' | echohl None
     else
