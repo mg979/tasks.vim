@@ -43,6 +43,7 @@
 "   taskname = {
 "     local,            BOOL
 "     fields,           DICT
+"     profile,          STRING
 "     warnings,         LIST        TODO
 "   }
 "
@@ -129,6 +130,8 @@ function! s:parse(path, is_local) abort
         elseif match(line, s:taskpat) == 1
             let task = matchstr(line, s:taskpat)
             let p.tasks[task] = s:new_task(a:is_local)
+            let p.tasks[task].profile = match(line, s:profpat) > 0 ?
+                        \               matchstr(line, s:profpat) : 'default'
             let current = p.tasks[task]
         elseif current isnot v:null
             for pat in values(s:patterns)
@@ -167,7 +170,7 @@ function! s:validate_task(project, name, values) abort
     if s:is_env(p, n, v)            | return v:false | endif
     if s:is_projects_info(p, n, v)  | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
-    if s:wrong_profile(n)           | return v:false | endif
+    if s:wrong_profile(p, n, v)     | return v:false | endif
     if s:no_valid_fields(v.fields)  | return v:false | endif
     return v:true
 endfunction
@@ -240,13 +243,11 @@ function! s:failing_conditions(item) abort
 endfunction
 
 
-function! s:wrong_profile(task) abort
-    " : is the delimiter for the profile (default, debug, etc)
-    if match(a:task, ':') > 0
-        let [_, profile] = split(a:task, ':')
-        return profile != s:get_tasks_profile()
+function! s:wrong_profile(project, taskname, task) abort
+    if !a:task.local
+        return v:true
     endif
-    return v:false
+    return a:project.profile != a:task.profile
 endfunction
 
 
@@ -767,7 +768,8 @@ let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
 
-let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(:\w+)?(\/(\w+,?)+)?\ze]'
+let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
+let s:profpat  = '\v]\s+\@\zs\w+'
 let s:pospat   = '<top>|<bottom>|<left>|<right>'
 let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|<update>|<wall>'
 
