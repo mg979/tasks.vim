@@ -333,8 +333,7 @@ function! tasks#run(args) abort
             let prj = tasks#get(1)
         endif
     endif
-    if empty(prj)
-        echon s:badge() 'no tasks'
+    if s:no_tasks(prj)
         return
     endif
     let tasks = prj.tasks
@@ -527,8 +526,7 @@ function! tasks#list(as_json) abort
         return
     endif
     let prj = tasks#get(1)
-    if empty(prj)
-        echon s:badge() 'no tasks'
+    if s:no_tasks(prj)
         return
     endif
     echohl Comment
@@ -585,8 +583,7 @@ endfunction
 function! tasks#choose() abort
     let i = 1
     let prj = tasks#get(1)
-    if empty(prj)
-        echon s:badge() 'no tasks'
+    if s:no_tasks(prj)
         return
     endif
     let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
@@ -722,6 +719,17 @@ function! s:badge(...) abort
         echohl Delimiter  | echon '[tasks] ' | echohl None
     endif
     return ''
+endfunction
+
+""
+" No tasks available for current project/filetye
+""
+function! s:no_tasks(prj) abort
+    if empty(a:prj) || empty(a:prj.tasks)
+        echon s:badge() 'no tasks'
+        return v:true
+    endif
+    return v:false
 endfunction
 
 ""
