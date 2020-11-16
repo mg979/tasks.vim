@@ -1,8 +1,10 @@
 runtime syntax/dosini.vim
 
 syn clear dosiniHeader
+syn clear dosiniComment
+syn match TaskComment  "^;.*$"
 syn region TaskName   start="^\s*\[" end="\]" nextgroup=TaskProfile
-syn match TasksError '^[^#\[]\+\ze=\?.*'
+syn match TasksError '^[^;\[]\+\ze=\?.*'
 syn match TaskProfile '\s\+@\w\+' contained
 
 let s:cmd  = '%(<command>(:(\w+,?)+)?(\/(\w+,?)+)?)'
@@ -17,3 +19,4 @@ hi default link TasksError  WarningMsg
 hi default link TasksField  dosiniLabel
 hi default link TaskName    Special
 hi default link TaskProfile Constant
+hi default link TaskComment Comment

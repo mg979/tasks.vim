@@ -125,7 +125,7 @@ function! s:parse(path, is_local) abort
     let current = v:null
     let p = s:new_project(a:is_local)
     for line in lines
-        if match(line, '^#') == 0 || empty(line)
+        if match(line, '^;') == 0 || empty(line)
             continue
         elseif match(line, s:taskpat) == 1
             let task = matchstr(line, s:taskpat)

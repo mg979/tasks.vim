@@ -3,7 +3,7 @@ if exists('b:did_ftplugin')
 endif
 let b:did_ftplugin = 1
 
-set commentstring=#\ %s
+set commentstring=;\ %s
 
 au BufWritePost <buffer> call s:update()
 
