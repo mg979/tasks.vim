@@ -127,6 +127,9 @@ function! s:parse(path, is_local) abort
     for line in lines
         if match(line, '^;') == 0 || empty(line)
             continue
+        elseif match(line, s:envpat) == 0 && a:is_local
+            let p.tasks['__env__'] = s:new_task(1)
+            let current = p.tasks['__env__']
         elseif match(line, s:taskpat) == 1
             let task = matchstr(line, s:taskpat)
             let p.tasks[task] = s:new_task(a:is_local)
@@ -184,13 +187,13 @@ endfunction
 " they've been found, and their fields will be stored in the root of the
 " project dict. They are:
 "
-"   [info]      local to project, it contains informations about the project
-"   [env]       local to project, it contains environmental variables that will
+"   #info       local to project, it contains informations about the project
+"   #env        local to project, it contains environmental variables that will
 "               be set before the command is executed
 ""
 
 function! s:is_env(project, name, task) abort
-    if !a:task.local || a:name !=# 'env'
+    if !a:task.local || a:name !=# '__env__'
         return v:false
     endif
     call extend(a:project.env, a:task.fields)
@@ -770,6 +773,7 @@ let s:is_wsl     = exists('$WSLENV')
 
 let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
 let s:profpat  = '\v]\s+\@\zs\w+'
+let s:envpat   = '^#\(\<env\>\|\<environment\>\)$'
 let s:pospat   = '<top>|<bottom>|<left>|<right>'
 let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|<update>|<wall>'
 

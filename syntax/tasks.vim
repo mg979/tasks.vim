@@ -11,10 +11,12 @@ let s:cmd  = '%(<command>(:(\w+,?)+)?(\/(\w+,?)+)?)'
 let s:keys = ['cwd', 'output', 'compiler', 'success', 'fail', 'syntax', 'errorformat', 'options', 'env']
 exe printf("syn match TasksField '\\v\\C^%s|<%s>|<[A-Z_]+>\\ze\\=.+'", s:cmd, join(s:keys, '>|<'))
 
-syn match TasksEnv '\${\?[A-Z_]\+}\?' containedin=dosiniValue
-syn match TasksEnv '\%(\%(Windows\|\<win\d\d\>\).\{-}\)\@<=%[A-Z_]\+%' containedin=dosiniValue
+syn match TasksEnv    '^#\(\<env\>\|\<environment\>\)'
+syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue
+syn match TasksEnvVar '\%(\%(Windows\|\<win\d\d\>\).\{-}\)\@<=%[A-Z_]\+%' containedin=dosiniValue
 
-hi default link TasksEnv    Identifier
+hi default link TasksEnv    Constant
+hi default link TasksEnvVar Identifier
 hi default link TasksError  WarningMsg
 hi default link TasksField  dosiniLabel
 hi default link TaskName    Special
