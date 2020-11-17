@@ -187,7 +187,7 @@ fun! s:list_finished_jobs() abort
   echo 'id  process  status  command'
   echohl None
   let J = g:async_finished_jobs
-  for id in keys(J)
+  for id in sort(keys(J))
     let limit = &columns - 4 - 9 - 8 - 5
     let cmd = async#expand(J[id].cmd)
     echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, cmd)
@@ -349,6 +349,13 @@ fun! s:cb_terminal(job) abort
   "{{{1
   let b:job_out = a:job.out
   let b:job_err = a:job.err
+  if !has('nvim')
+    let win = bufwinnr(a:job.termbuf)
+    if win > 0
+      let hl = a:job.status ? '%#ErrorMsg#' : '%#DiffAdd#'
+      call setwinvar(win, '&statusline', hl . 'Exit status: ' . a:job.status)
+    endif
+  endif
 endfun "}}}
 
 
@@ -614,6 +621,7 @@ fun! s:term_start(cmd, opts, useropts) abort
     new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
   endif
   let job = has('nvim') ? termopen(a:cmd, a:opts) : term_getjob(term_start(a:cmd, a:opts))
+  let a:useropts.termbuf = bufnr('')
   let pos = get(a:useropts, 'pos', 'split')
   if index(['top', 'bottom', 'left', 'right'], pos) >= 0
     exe 'wincmd' {'top': 'K', 'bottom': 'J', 'left': 'H', 'right': 'L'}[pos]
