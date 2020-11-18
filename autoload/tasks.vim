@@ -581,7 +581,7 @@ endfunction
 " Choose among available tasks (called with mapping).
 ""
 function! tasks#choose() abort
-    let i = 1
+    let i = get(g:, 'tasks_mapping_starts_at', 5)
     let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
@@ -611,6 +611,9 @@ function! tasks#choose() abort
         endif
         echon cmd
         let i += 1
+        if i > 12
+            let i = 1
+        endif
     endfor
     echo ''
     let ch = getchar()
