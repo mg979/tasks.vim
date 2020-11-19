@@ -449,6 +449,7 @@ fun! async#finish(exit_cb, job, status, ...) abort
       call timer_start(1000, { t -> delete(f) })
     endfor
   endif
+  call s:write_logs(job)
   unlet job.out
   unlet job.err
   let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
@@ -479,6 +480,9 @@ endfun "}}}
 "  'repeat'     repeat every n seconds       default: 0
 "  'update'     do :update before cmd        default: 0
 "  'wall'       do :wall before cmd          default: 0
+"  'writelogs'  write out/err to logfiles    default: 0
+"  'outfile'    file where to write out      default: ''
+"  'errfile'    file where to write err      default: ''
 fun! s:default_opts()
   return {
         \ 'prg': &makeprg,
@@ -497,6 +501,9 @@ fun! s:default_opts()
         \ 'repeat': 0,
         \ 'update': 0,
         \ 'wall': 0,
+        \ 'writelogs': 0,
+        \ 'outfile': '',
+        \ 'errfile': '',
         \}
 endfun
 
@@ -720,6 +727,25 @@ fun! s:vim_err(channel, line) abort
   let job = s:get_job_with_channel(a:channel)
   call add(job['err'], a:line)
 endfun
+
+" Write log files with out/err if requested {{{1
+" @param job: the job object
+""
+function! s:write_logs(job) abort
+  if !a:job.writelogs
+    return
+  endif
+  let fn = a:job.outfile == '' ? tempname() : expand(a:job.outfile)
+  let a:job.outfile = fn
+  if writefile(a:job.out, fn) == -1
+    echom 'Error writing log for stdout to' fn
+  endif
+  let fn = a:job.errfile == '' ? tempname() : expand(a:job.errfile)
+  let a:job.errfile = fn
+  if writefile(a:job.err, fn) == -1
+    echom 'Error writing log for stderr to' fn
+  endif
+endfunction
 
 " Echo output to the command line {{{1
 " @param list: a list of lines
