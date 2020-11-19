@@ -173,6 +173,11 @@ fun! async#list(finished) abort
     echo j
   endfor
   let id = input('> ')
+  if !has_key(g:async_jobs, id)
+    redraw
+    echo 'Invalid id:' id
+    return
+  endif
   if id != '' && confirm('Stop job with id '.id, "&Yes\n&No") == 1
     call async#stop(id, 0)
   endif
