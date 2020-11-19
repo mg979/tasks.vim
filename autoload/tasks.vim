@@ -175,6 +175,7 @@ function! s:validate_task(project, name, values) abort
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(p, n, v)     | return v:false | endif
     if s:no_valid_fields(v.fields)  | return v:false | endif
+    if s:no_command(v.fields)       | return v:false | endif
     return v:true
 endfunction
 
@@ -257,6 +258,16 @@ endfunction
 function! s:no_valid_fields(fields) abort
     call filter(a:fields, function("s:valid_fields"))
     return empty(a:fields)
+endfunction
+
+
+function! s:no_command(fields) abort
+    for f in keys(a:fields)
+        if f =~ '^command'
+            return v:false
+        endif
+    endfor
+    return v:true
 endfunction
 
 
