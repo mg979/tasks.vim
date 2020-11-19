@@ -248,7 +248,7 @@ endfunction
 
 function! s:wrong_profile(project, taskname, task) abort
     if !a:task.local
-        return v:true
+        return v:false
     endif
     return a:project.profile != a:task.profile
 endfunction
