@@ -470,8 +470,10 @@ fun! async#finish(exit_cb, job, status, ...) abort
     endfor
   endif
   call s:write_logs(job)
-  unlet job.out
-  unlet job.err
+  if !job.keepouts
+    unlet job.out
+    unlet job.err
+  endif
   let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   let g:async_finished_jobs[job.id] = job
 endfun "}}}
@@ -500,6 +502,7 @@ endfun "}}}
 "  'repeat'     repeat every n seconds       default: 0
 "  'update'     do :update before cmd        default: 0
 "  'wall'       do :wall before cmd          default: 0
+"  'keepouts'   keep out/err in memory       default: 0
 "  'writelogs'  write out/err to logfiles    default: 0
 "  'outfile'    file where to write out      default: ''
 "  'errfile'    file where to write err      default: ''
@@ -521,6 +524,7 @@ fun! s:default_opts()
         \ 'repeat': 0,
         \ 'update': 0,
         \ 'wall': 0,
+        \ 'keepouts': 0,
         \ 'writelogs': 0,
         \ 'outfile': '',
         \ 'errfile': '',
