@@ -197,6 +197,15 @@ fun! s:list_finished_jobs() abort
     let cmd = async#expand(J[id].cmd)
     echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, cmd)
   endfor
+  if s:py != ''
+    let id = input('> ')
+    if !has_key(g:async_finished_jobs, id)
+      redraw
+      echo 'Invalid id:' id
+    else
+      call s:job_as_json(g:async_finished_jobs[id])
+    endif
+  endif
 endfun "}}}
 
 
@@ -802,6 +811,30 @@ fun! s:get_pos(job, default) abort
   else                  | return pos
   endif
 endfun
+
+" Render the job dict as json in a scratch buffer. {{{1
+fun! s:job_as_json(dict) abort
+  let data = s:normalize_dict(deepcopy(a:dict))
+  let json = json_encode(data)
+  vnew +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
+  wincmd H
+  put =json
+  1d _
+  exe '%!' . s:py . ' -m json.tool'
+  setfiletype json
+endfun
+
+fun! s:normalize_dict(dict)
+  for k in keys(a:dict)
+    if type(a:dict[k]) != v:t_string && type(a:dict[k]) != v:t_number
+      let a:dict[k] = string(a:dict[k])
+    elseif type(a:dict[k]) == v:t_dict
+      call s:normalize_dict(a:dict[k])
+    endif
+  endfor
+  return a:dict
+endfun
+
 "}}}
 
 let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
@@ -809,6 +842,7 @@ let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
 let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
+let s:py         = executable('python') ? 'python' : executable('python3') ? 'python3' : ''
 let s:cmdscripts = []
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
