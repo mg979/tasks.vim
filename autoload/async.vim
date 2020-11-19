@@ -351,15 +351,11 @@ endfun "}}}
 
 ""=============================================================================
 " Function: s:cb_terminal
-" Remove the job but set buffer variables so that out/err are saved.
-" @param job:    the job object
-"
-" job.pos can be: 'split'(default), 'top', 'bottom', 'left', 'right'
+" Set the terminal window statusline to reflect the exit status.
+" @param job: the job object
 ""=============================================================================
 fun! s:cb_terminal(job) abort
   "{{{1
-  let b:job_out = a:job.out
-  let b:job_err = a:job.err
   if !has('nvim')
     let win = bufwinnr(a:job.termbuf)
     if win > 0
