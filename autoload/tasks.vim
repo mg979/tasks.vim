@@ -795,7 +795,8 @@ let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
 let s:profpat  = '\v]\s+\@\zs\w+'
 let s:envpat   = '^#\(\<env\>\|\<environment\>\)$'
 let s:pospat   = '<top>|<bottom>|<left>|<right>'
-let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|<update>|<wall>'
+let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|'.
+            \    '<update>|<wall>|<keepouts>|<writelogs>'
 
 let s:patterns = {
             \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',
@@ -808,6 +809,8 @@ let s:patterns = {
             \ 'options':      '^options\ze=',
             \ 'errorformat':  '^errorformat\ze=',
             \ 'env':          '\C^[A-Z_]\+\ze=',
+            \ 'outfile':      '^outfile\ze=',
+            \ 'errfile':      '^errfile\ze=',
             \}
 
 let s:fields = {
@@ -820,6 +823,8 @@ let s:fields = {
             \ 'fail':        { k,v -> v:true },
             \ 'syntax':      { k,v -> v =~ '\w\+\(\.\w\+\)\?' },
             \ 'errorformat': { k,v -> v:true },
+            \ 'outfile':     { k,v -> v =~ '\f\+' },
+            \ 'errfile':     { k,v -> v =~ '\f\+' },
             \}
 
 

@@ -8,7 +8,7 @@ syn match TasksError '^[^;\[]\+\ze=\?.*'
 syn match TaskProfile '\s\+@\w\+' contained
 
 let s:cmd  = '%(<command>(:(\w+,?)+)?(\/(\w+,?)+)?)'
-let s:keys = ['cwd', 'output', 'compiler', 'success', 'fail', 'syntax', 'errorformat', 'options', 'env']
+let s:keys = ['cwd', 'output', 'compiler', 'success', 'fail', 'syntax', 'errorformat', 'options', 'outfile', 'errfile']
 exe printf("syn match TasksField '\\v\\C^%s|<%s>|<[A-Z_]+>\\ze\\=.+'", s:cmd, join(s:keys, '>|<'))
 
 syn match TasksEnv    '^#\(\<env\>\|\<environment\>\)'
