@@ -276,14 +276,12 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 function! s:valid_fields(key, val) abort
-    for e in keys(s:fields)
-        if a:key =~ e
-            let l:key = e
-            break
+    for f in keys(s:fields)
+        if a:key =~ f
+            return s:fields[f](a:key, a:val)
         endif
     endfor
-    return !exists('l:key') ? v:false
-                \           : s:fields[l:key](a:key, a:val)
+    return v:false
 endfunction
 
 
