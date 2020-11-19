@@ -334,11 +334,17 @@ endfun "}}}
 fun! s:cb_cmdline(job) abort
   " {{{1
   if a:job.status
-    call s:echo(a:job.err, 'ErrorMsg')
-  elseif !empty(a:job.err)
-    call s:echo(a:job.err)
+    if !empty(a:job.err)
+      call s:echo(a:job.err, 'ErrorMsg')
+    elseif !empty(a:job.out)
+      call s:echo(a:job.out, 'ErrorMsg')
+    endif
   else
-    call s:echo(a:job.out)
+    if !empty(a:job.err)
+      call s:echo(a:job.err)
+    elseif !empty(a:job.out)
+      call s:echo(a:job.out)
+    endif
   endif
 endfun "}}}
 
@@ -725,12 +731,12 @@ endfun
 ""
 fun! s:echo(list, ...)
   call filter(a:list, { k,v -> v != '' })
-  let txt = map(a:list, { k,v -> ':echo ' . string(v) . "\n" })
+  let txt = map(a:list, { k,v -> ':echo ' . string(v) })
   if a:0
-    let txt = [':echohl ' . a:1 . "\n"] + txt + [':echohl None' . "\n"]
+    let txt = [':echohl ' . a:1] + txt + [':echohl None']
   endif
-  let @" = join(txt, '')
-  call feedkeys(':exe @' . "\n")
+  let @" = join(txt, "\n")
+  call feedkeys(':exe @' . "\n", 'n')
 endfun
 
 " Remove trailing empty lines from output {{{1
