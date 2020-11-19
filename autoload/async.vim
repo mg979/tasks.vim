@@ -434,16 +434,16 @@ endfun "}}}
 ""=============================================================================
 " Function: async#finish
 " Add finished job to the global table, and store its exit status.
-" @param func:   the actual exit callback
-" @param job:    the finished job id/object
-" @param status: the exit status of the job
-" @param ...:    the event type (passed by nvim, unused)
+" @param exit_cb: the actual exit callback
+" @param job:     the finished job id/object
+" @param status:  the exit status of the job
+" @param ...:     the event type (passed by nvim, unused)
 ""=============================================================================
-fun! async#finish(func, job, status, ...) abort
+fun! async#finish(exit_cb, job, status, ...) abort
   "{{{1
   let job = s:no_trailing_blanks(async#remove_job(a:job))
   let job.status = a:status
-  call a:func(job)
+  call a:exit_cb(job)
   if !empty(s:cmdscripts)
     for f in s:cmdscripts
       call timer_start(1000, { t -> delete(f) })
