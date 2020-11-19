@@ -29,6 +29,7 @@ let g:loaded_async = 1
 
 command! -nargs=1       System    call async#cmd(<q-args>, 'buffer')
 command! -nargs=1       Echo      call async#cmd(<q-args>, 'cmdline')
+command! -nargs=1       Async     call async#cmd(<q-args>, 'headless')
 
 command! -bang          StopJobs  call async#stop(0, <bang>0)
 command! -bang          Jobs      call async#list(<bang>0)

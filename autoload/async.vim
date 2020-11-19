@@ -35,7 +35,7 @@ let s:id = 0
 " Function: async#cmd
 " Run a shell cmd asynchronously.
 " @param cmd:  the command
-" @param mode: quickfix, buffer, terminal, external or cmdline
+" @param mode: quickfix, buffer, terminal, external, cmdline or headless
 " @param ...:  extra args, can be one or two dicts
 "              - first is 'useropts' (user data stored in g:async_jobs[id])
 "              - second is 'jobopts' (merged with job options)
@@ -346,6 +346,17 @@ fun! s:cb_cmdline(job) abort
       call s:echo(a:job.out)
     endif
   endif
+endfun "}}}
+
+
+""=============================================================================
+" Function: s:cb_headless
+" Nothing to do here.
+" @param job: the job object
+""=============================================================================
+fun! s:cb_headless(job)
+  " {{{1
+  return
 endfun "}}}
 
 
