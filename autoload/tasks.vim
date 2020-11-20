@@ -1,5 +1,5 @@
 " ========================================================================///
-" Description: Tasks management inspyred by asynctasks.vim
+" Description: Tasks management inspired by asynctasks.vim
 " File:        tasks.vim
 " Author:      Gianmaria Bajo <mg1979@git.gmail.com>
 " License:     MIT
@@ -72,6 +72,11 @@ endfunction
 " Tasks getters
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+""
+" Get valid tasks, fetched from both global and project-local config files.
+" @param ...: force reloading of config files
+" @return: the merged dictionary with tasks
+""
 function! tasks#get(...) abort
     let reload = a:0 && a:1
     let global = tasks#global(reload)
@@ -82,6 +87,9 @@ function! tasks#get(...) abort
 endfunction
 
 
+""
+" Get the project-local tasks dictionary.
+""
 function! tasks#project(reload) abort
     let prj = s:project_name()
     if !a:reload && has_key(g:tasks, prj) && !g:tasks[prj].invalidated
@@ -96,6 +104,9 @@ function! tasks#project(reload) abort
 endfunction
 
 
+""
+" Get the global tasks dictionary.
+""
 function! tasks#global(reload) abort
     if !a:reload && has_key(g:tasks, 'global') && !g:tasks.global.invalidated
         return g:tasks.global
@@ -116,7 +127,6 @@ endfunction
 ""
 " Function: s:parse
 " Parse and validate a tasks file.
-"
 " @param path:     path of the tasks file
 " @param is_local: true if it's project-local tasks file
 " Returns: the validated task
