@@ -830,7 +830,7 @@ let s:profpat  = '\v]\s+\@\zs\w+'
 let s:envpat   = '^#\(\<env\>\|\<environment\>\)$'
 let s:pospat   = '<top>|<bottom>|<left>|<right>'
 let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|'.
-            \    '<update>|<wall>|<keepouts>|<writelogs>'
+            \    '<update>|<wall>|<keepouts>|<writelogs>|<termonquit>'
 
 let s:patterns = {
             \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',

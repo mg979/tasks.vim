@@ -121,7 +121,7 @@ endfun "}}}
 ""=============================================================================
 " Function: async#stop
 " @param id:   the id of the job to stop. If 0, all jobs are stopped.
-" @param kill: kill rather than terminate. Vim only.
+" @param ...:  kill rather than terminate. Vim only.
 " Returns: the id of the stopped job, or 0 if all jobs are stopped.
 ""=============================================================================
 fun! async#stop(id, ...) abort
@@ -498,6 +498,7 @@ endfun "}}}
 "  'writelogs'  write out/err to logfiles    default: 0
 "  'outfile'    file where to write out      default: ''
 "  'errfile'    file where to write err      default: ''
+"  'termonquit' when quitting vim            default: 0
 fun! s:default_opts()
   return {
         \ 'prg': &makeprg,
@@ -520,6 +521,7 @@ fun! s:default_opts()
         \ 'writelogs': 0,
         \ 'outfile': '',
         \ 'errfile': '',
+        \ 'termonquit': 0,
         \}
 endfun
 
@@ -846,6 +848,20 @@ fun! s:prompt_id() abort
   return id
 endfun
 
+" When quitting vim, perform action on running jobs. {{{1
+
+fun! s:on_vim_quit() abort
+  if !empty(g:async_jobs)
+    echo 'There are running jobs.'
+    for id in keys(g:async_jobs)
+      if g:async_jobs[id].termonquit ||
+            \confirm('Stop job with id '. id, "&Yes\n&No") == 1
+        call async#stop(id, 0)
+      endif
+    endfor
+  endif
+endfun
+
 "}}}
 
 let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
@@ -855,5 +871,10 @@ let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
 let s:py         = executable('python') ? 'python' : executable('python3') ? 'python3' : ''
 let s:cmdscripts = []
+
+augroup async-stopjobs
+  au!
+  autocmd VimLeavePre * call s:on_vim_quit()
+augroup END
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
