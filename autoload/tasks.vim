@@ -179,7 +179,6 @@ function! s:validate_task(project, name, values) abort
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(p, n, v)     | return v:false | endif
     if s:no_valid_fields(v.fields)  | return v:false | endif
-    if s:no_command(v.fields)       | return v:false | endif
     return v:true
 endfunction
 
@@ -251,6 +250,9 @@ function! s:failing_conditions(item) abort
 endfunction
 
 
+""
+" If the task is project-local, task profile must match the current one.
+""
 function! s:wrong_profile(project, taskname, task) abort
     if !a:task.local
         return v:false
@@ -259,12 +261,18 @@ function! s:wrong_profile(project, taskname, task) abort
 endfunction
 
 
+""
+" Check the validity of the entered fields. One 'command' must be defined.
+""
 function! s:no_valid_fields(fields) abort
-    call filter(a:fields, function("s:valid_fields"))
-    return empty(a:fields)
+    call filter(a:fields, function("s:valid_field"))
+    return empty(a:fields) || s:no_command(a:fields)
 endfunction
 
 
+""
+" Check that one 'command' field has been defined for the task.
+""
 function! s:no_command(fields) abort
     for f in keys(a:fields)
         if f =~ '^command'
@@ -279,7 +287,13 @@ endfunction
 " Validate fields
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! s:valid_fields(key, val) abort
+""
+" The field name can contain modifiers, therefore regex must be used in the
+" comparison with the 's:fields' dict key. The field is valid if:
+"
+"   s:fields[matched field]()   -> must return true
+""
+function! s:valid_field(key, val) abort
     for f in keys(s:fields)
         if a:key =~ f
             return s:fields[f](a:key, a:val)
