@@ -290,16 +290,14 @@ endfunction
 
 
 function! s:validate_output(key, val) abort
-    if a:val =~ '^cmdline'
-        return a:val == 'cmdline'
-    elseif a:val =~ '^terminal'
+    if a:val =~ '^terminal'
         return a:val =~ '^\vterminal(:('.s:pospat.'))?(:\d+)?$'
     elseif a:val =~ '^buffer'
         return a:val =~ '^\vbuffer(:('.s:pospat.'))?(:\d+)?$'
     elseif a:val =~ '^external'
         return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
-    elseif a:val =~ '^quickfix'
-        return a:val == 'quickfix'
+    else
+        return index(['quickfix', 'cmdline', 'headless'], a:val) >= 0
     endif
 endfunction
 
