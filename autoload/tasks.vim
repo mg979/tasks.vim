@@ -74,7 +74,11 @@ endfunction
 
 function! tasks#get(...) abort
     let reload = a:0 && a:1
-    return extend(tasks#global(reload), tasks#project(reload))
+    let global = tasks#global(reload)
+    let gtasks = deepcopy(global.tasks)
+    let dict = extend(global, tasks#project(reload))
+    call extend(dict.tasks, gtasks, 'keep')
+    return dict
 endfunction
 
 
