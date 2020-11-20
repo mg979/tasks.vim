@@ -179,6 +179,8 @@ function! s:validate_task(project, name, values) abort
     if s:failing_conditions(n)      | return v:false | endif
     if s:wrong_profile(p, n, v)     | return v:false | endif
     if s:no_valid_fields(v.fields)  | return v:false | endif
+
+    call s:purge_invalid_opts(v.fields)
     return v:true
 endfunction
 
@@ -376,7 +378,7 @@ function! tasks#run(args) abort
 
     let mode = s:get_cmd_mode(task)
     let opts = extend(s:get_pos(mode),
-                \     s:get_opts(get(task.fields, 'options', '')))
+                \     s:get_opts(get(task.fields, 'options', [])))
     let useropts = extend({
                 \ 'prg': cmd,
                 \ 'gprg': cmd,
@@ -461,16 +463,12 @@ function! s:get_pos(mode) abort
 endfunction
 
 ""
-" Options defined in the 'options' field.
+" All options have a default of 0.
+" Options defined in the 'options' field will be set to 1.
 ""
-function! s:get_opts(opts_string) abort
-    if a:opts_string == ''
-        return {}
-    endif
+function! s:get_opts(opts) abort
     let opts = {}
-    let vals = split(a:opts_string, ',')
-    " all options have a default of 0
-    for v in vals
+    for v in a:opts
         let opts[v] = 1
     endfor
     return opts
@@ -715,6 +713,16 @@ function! s:clear_tasks_names(prj) abort
     endfor
     call extend(a:prj.tasks, renamed_tasks)
     return a:prj
+endfunction
+
+""
+" Make a list of options, removing invalid ones.
+""
+function! s:purge_invalid_opts(fields) abort
+    if has_key(a:fields, 'options')
+        let a:fields.options = split(a:fields.options, ',')
+        call filter(a:fields.options, 'v:val =~ "\\v" . s:optspat')
+    endif
 endfunction
 
 ""
