@@ -9,66 +9,6 @@
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Constructors
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Tasks can be defined at global level or per project. Project-local tasks
-" override global tasks with the same name.
-"
-" When one tries to run a task, the global file and the local file are parsed
-" and merged. The parsed tasks are stored in the global table g:tasks.
-"
-" When a tasks file (global or local) is edited and saved, it is invalidated,
-" so that the next time that one tries to run a command, invalidated files
-" will be parsed again.
-"
-" The g:tasks table has the following structure:
-"
-"   g:tasks = {
-"     global = {
-"         tasks,        DICT
-"         invalidated,  BOOL
-"     },
-"     project_1 = {
-"         env,          DICT
-"         tasks,        DICT
-"         invalidated,  BOOL
-"         profile,      STRING
-"     },
-"     ...
-"   }
-"
-" No profile can be defined for the global tasks. It's a project thing.
-" Elements in x.tasks have the following structure:
-"
-"   taskname = {
-"     local,            BOOL
-"     fields,           DICT
-"     profile,          STRING
-"     warnings,         LIST        TODO
-"   }
-"
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-function! s:new_task(local) abort
-    let t = {}
-    let t.local = a:local
-    let t.fields = {}
-    return t
-endfunction
-
-
-function! s:new_project(local) abort
-    let p = { 'tasks': {}, 'invalidated': 0, 'env': {} }
-    if a:local
-        let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:project_name() }
-        let p.profile = 'default'
-        let p.info = { 'name': s:project_name() }
-    endif
-    return p
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Tasks getters
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -82,7 +22,9 @@ function! tasks#get(...) abort
     let global = tasks#global(reload)
     let gtasks = deepcopy(global.tasks)
     let dict = extend(global, tasks#project(reload))
-    call extend(dict.tasks, gtasks, 'keep')
+    if s:can_include_global_tasks(dict)
+        call extend(dict.tasks, gtasks, 'keep')
+    endif
     return dict
 endfunction
 
@@ -91,7 +33,7 @@ endfunction
 " Get the project-local tasks dictionary.
 ""
 function! tasks#project(reload) abort
-    let prj = s:project_name()
+    let prj = s:ut.basedir()
     if !a:reload && has_key(g:tasks, prj) && !g:tasks[prj].invalidated
         return g:tasks[prj]
     endif
@@ -99,7 +41,7 @@ function! tasks#project(reload) abort
     if !filereadable(f)
         return {}
     endif
-    let g:tasks[prj] = s:parse(f, 1)
+    let g:tasks[prj] = tasks#parse#do(readfile(f), 1)
     return g:tasks[prj]
 endfunction
 
@@ -115,53 +57,8 @@ function! tasks#global(reload) abort
     if !filereadable(f)
         return {}
     endif
-    let g:tasks.global = s:parse(f, 0)
+    let g:tasks.global = tasks#parse#do(readfile(f), 0)
     return g:tasks.global
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Parse configuration files
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-""
-" Function: s:parse
-" Parse and validate a tasks file.
-" @param path:     path of the tasks file
-" @param is_local: true if it's project-local tasks file
-" Returns: the validated task
-""
-function! s:parse(path, is_local) abort
-    if a:path == ''
-        return {}
-    endif
-    let lines = readfile(a:path)
-    let current = v:null
-    let p = s:new_project(a:is_local)
-    for line in lines
-        if match(line, '^;') == 0 || empty(line)
-            continue
-        elseif match(line, s:envpat) == 0 && a:is_local
-            let p.tasks['__env__'] = s:new_task(1)
-            let current = p.tasks['__env__']
-        elseif match(line, s:taskpat) == 1
-            let task = matchstr(line, s:taskpat)
-            let p.tasks[task] = s:new_task(a:is_local)
-            let p.tasks[task].profile = match(line, s:profpat) > 0 ?
-                        \               matchstr(line, s:profpat) : 'default'
-            let current = p.tasks[task]
-        elseif current isnot v:null
-            for pat in values(s:patterns)
-                if match(line, pat) == 0
-                    let item = matchstr(line, pat)
-                    let current.fields[item] = substitute(line, item . '=', '', '')
-                    break
-                endif
-            endfor
-        endif
-    endfor
-    call filter(p.tasks, function('s:validate_task', [p]))
-    return s:clear_tasks_names(p)
 endfunction
 
 
@@ -170,186 +67,6 @@ endfunction
 " TODO: assign score to commands to see which one should be chosen
 " TODO: cwd, prjname
 " TODO: success/fail hooks
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Validate tasks
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-""
-" Function: s:validate_task (filter function)
-" @param project: the project (or the global ini) the task belong to
-" @param name:    name of the task (key of the project.tasks element)
-" @param values:  content of project.tasks[name]
-" Returns: true if the task is valid
-""
-function! s:validate_task(project, name, values) abort
-    let [p, n, v] = [a:project, a:name, a:values]
-    if s:is_env(p, n, v)            | return v:false | endif
-    if s:is_projects_info(p, n, v)  | return v:false | endif
-    if s:failing_conditions(n)      | return v:false | endif
-    if s:wrong_profile(p, n, v)     | return v:false | endif
-    if s:no_valid_fields(v.fields)  | return v:false | endif
-
-    call s:purge_invalid_opts(v.fields)
-    return v:true
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Special sections
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-""
-" These are not real tasks, so they will be removed from the tasks dict after
-" they've been found, and their fields will be stored in the root of the
-" project dict. They are:
-"
-"   #info       local to project, it contains informations about the project
-"   #env        local to project, it contains environmental variables that will
-"               be set before the command is executed
-""
-
-function! s:is_env(project, name, task) abort
-    if !a:task.local || a:name !=# '__env__'
-        return v:false
-    endif
-    call extend(a:project.env, a:task.fields)
-    return v:true
-endfunction
-
-
-function! s:is_projects_info(project, name, task) abort
-    if !a:task.local || a:name !=# 'info'
-        return v:false
-    endif
-    call extend(a:project.info, a:task.fields)
-    return v:true
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Actual tasks validation
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-function! s:failing_conditions(item) abort
-    " / is the delimiter for systems and other conditions to satisfy
-    " if conditions are separated by '+' they must all be satisfied
-    " if conditions are separated by ',' any of them is enough
-    if match(a:item, '/') > 0
-        let l:Has = { cond -> cond !~? '\clinux\|windows\|macos\|wsl' && has(cond) }
-        let [_, conds] = split(a:item, '/')
-        if match(conds, '+') >= 0
-            for cond in split(conds, '+')
-                if     cond ==? 'linux'   && !s:is_linux   | return v:true
-                elseif cond ==? 'macos'   && !s:is_macos   | return v:true
-                elseif cond ==? 'windows' && !s:is_windows | return v:true
-                elseif cond ==? 'wsl'     && !s:is_wsl     | return v:true
-                elseif !l:Has(cond)                        | return v:true
-                endif
-            endfor
-        else
-            for cond in split(conds, ',')
-                if l:Has(cond)                            | return v:false
-                elseif cond ==? 'linux'   && s:is_linux   | return v:false
-                elseif cond ==? 'macos'   && s:is_macos   | return v:false
-                elseif cond ==? 'windows' && s:is_windows | return v:false
-                elseif cond ==? 'wsl'     && s:is_wsl     | return v:false
-                endif
-            endfor
-            return v:true
-        endif
-    endif
-    return v:false
-endfunction
-
-
-""
-" If the task is project-local, task profile must match the current one.
-""
-function! s:wrong_profile(project, taskname, task) abort
-    if !a:task.local
-        return v:false
-    endif
-    return a:project.profile != a:task.profile
-endfunction
-
-
-""
-" Check the validity of the entered fields. One 'command' must be defined.
-""
-function! s:no_valid_fields(fields) abort
-    call filter(a:fields, function("s:valid_field"))
-    return empty(a:fields) || s:no_command(a:fields)
-endfunction
-
-
-""
-" Check that one 'command' field has been defined for the task.
-""
-function! s:no_command(fields) abort
-    for f in keys(a:fields)
-        if f =~ '^command'
-            return v:false
-        endif
-    endfor
-    return v:true
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Validate fields
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-""
-" The field name can contain modifiers, therefore regex must be used in the
-" comparison with the 's:fields' dict key. The field is valid if:
-"
-"   s:fields[matched field]()   -> must return true
-""
-function! s:valid_field(key, val) abort
-    for f in keys(s:fields)
-        if a:key =~ f
-            return s:fields[f](a:key, a:val)
-        endif
-    endfor
-    return v:false
-endfunction
-
-
-function! s:validate_output(key, val) abort
-    if a:val =~ '^terminal'
-        return a:val =~ '^\vterminal(:('.s:pospat.'))?(:\d+)?$'
-    elseif a:val =~ '^buffer'
-        return a:val =~ '^\vbuffer(:('.s:pospat.'))?(:\d+)?$'
-    elseif a:val =~ '^external'
-        return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
-    else
-        return index(['quickfix', 'cmdline', 'headless'], a:val) >= 0
-    endif
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Validate command
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-function! s:valid_filetype(key) abort
-    let fts = split(substitute(a:key, '.*:', '', ''), ',')
-    return index(fts, s:ft()) >= 0
-endfunction
-
-
-function! s:validate_command(key, val) abort
-    if match(a:key, '/') > 0 && s:failing_conditions(a:key)
-        return v:false
-    endif
-    " / is the delimiter for systems and other conditions to satisfy
-    let k = substitute(a:key, '/.*', '', '')
-    " : is the delimiter for the filetype filter
-    if match(k, ':') > 0
-        return s:valid_filetype(k)
-    endif
-    return k ==# 'command'
-endfunction
 
 
 
@@ -412,7 +129,7 @@ endfunction
 " Choose the most appropriate command for the task.
 ""
 function! s:choose_command(task) abort
-    let [cmdpat, cmppat, ft] = ['^command', '^compiler', '\<' . s:ft() . '\>']
+    let [cmdpat, cmppat, ft] = ['^command', '^compiler', '\<' . s:ut.ft() . '\>']
 
     " try 'compiler' first, then 'command'
     let cmds = filter(copy(a:task.fields), 'v:key =~ cmppat')
@@ -441,11 +158,13 @@ endfunction
 function! s:get_cwd(task) abort
     if has_key(a:task.fields, 'cwd')
         let cwd = async#expand(a:task.fields.cwd)
-        if s:is_windows
+        if s:v.is_windows
             let cwd = substitute(cwd, '%\([A-Z_]\+\)%', '$\1', 'g')
         endif
-        let cwd = substitute(cwd, '\$ROOT\>', '\=getcwd()', 'g')
-        let cwd = substitute(cwd, '\$PRJNAME\>', '\=s:project_name()', 'g')
+        if a:task.local
+            let cwd = substitute(cwd, '\$ROOT\>', '\=getcwd()', 'g')
+            let cwd = substitute(cwd, '\$PRJNAME\>', '\=a:task.info.name', 'g')
+        endif
         let cwd = substitute(cwd, '\(\$[A-Z_]\+\)\>', '\=expand(submatch(1))', 'g')
         return cwd
     else
@@ -465,7 +184,7 @@ endfunction
 " Buffer and terminal modes can define position after ':'
 ""
 function! s:get_pos(mode) abort
-    if a:mode !~ '\v^(buffer|terminal):'.s:pospat
+    if a:mode !~ '\v^(buffer|terminal):'.s:v.pospat
         return {}
     else
         return {'pos': substitute(a:mode, '^\w\+:', '', '')}
@@ -704,46 +423,20 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""
-" Basename of the working directory.
+" By default, global tasks are not show in projects, unless the #info section
+" states otherwise. The 'allowglobal' key can be:
+" - true/false (default false)
+" - a list of allowed filetypes
 ""
-function! s:project_name() abort
-    return fnamemodify(getcwd(), ':t')
-endfunction
-
-function! s:clear_tasks_names(prj) abort
-    if empty(a:prj)
-        return {}
+function! s:can_include_global_tasks(dict) abort
+    if !has_key(a:dict, 'info')
+        return v:true
     endif
-    let renamed_tasks = {}
-    for t in keys(a:prj.tasks)
-        let rt = s:task_name(t)
-        if t != rt
-            let renamed_tasks[rt] = remove(a:prj.tasks, t)
-        endif
-    endfor
-    call extend(a:prj.tasks, renamed_tasks)
-    return a:prj
-endfunction
-
-""
-" Make a list of options, removing invalid ones.
-""
-function! s:purge_invalid_opts(fields) abort
-    if has_key(a:fields, 'options')
-        let a:fields.options = split(a:fields.options, ',')
-        call filter(a:fields.options, 'v:val =~ "\\v" . s:optspat')
+    let allow = get(a:dict.info, 'allowglobal', 'false')
+    if match(allow, ',') > 0
+        return index(split(allow, ','), s:ut.ft()) >= 0
     endif
-endfunction
-
-""
-" Strip the conditions modifiers from the task name.
-""
-function! s:task_name(taskname) abort
-    let tn = a:taskname
-    if match(tn, '/') > 0
-        let tn = split(tn, '/')[0]
-    endif
-    return tn
+    return allow == 'true' || allow == s:ut.ft()
 endfunction
 
 ""
@@ -779,13 +472,6 @@ function! s:no_tasks(prj) abort
 endfunction
 
 ""
-" Base filetype.
-""
-function! s:ft() abort
-    return empty(&ft) ? '' : split(&ft, '\.')[0]
-endfunction
-
-""
 " Search recursively for a local tasks file in parent directories.
 ""
 function! s:find_root() abort
@@ -816,52 +502,11 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Patterns and script variables
+" Script variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
-let s:uname      = s:is_windows ? '' : systemlist('uname')[0]
-let s:is_linux   = s:uname == 'Linux'
-let s:is_macos   = s:uname == 'Darwin'
-let s:is_wsl     = exists('$WSLENV')
-
-let s:taskpat  = '\v^\[\zs\.?(\l+-?\l+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
-let s:profpat  = '\v]\s+\@\zs\w+'
-let s:envpat   = '^#\(\<env\>\|\<environment\>\)$'
-let s:pospat   = '<top>|<bottom>|<left>|<right>'
-let s:optspat  = '<grep>|<locl>|<append>|<nofocus>|<nojump>|<noopen>|'.
-            \    '<update>|<wall>|<keepouts>|<writelogs>|<termonquit>'
-
-let s:patterns = {
-            \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',
-            \ 'cwd':          '^cwd\ze=',
-            \ 'output':       '^output\ze=',
-            \ 'compiler':     '^compiler\ze=',
-            \ 'success':      '^success\ze=',
-            \ 'fail':         '^fail\ze=',
-            \ 'syntax':       '^syntax\ze=',
-            \ 'options':      '^options\ze=',
-            \ 'errorformat':  '^errorformat\ze=',
-            \ 'env':          '\C^[A-Z_]\+\ze=',
-            \ 'outfile':      '^outfile\ze=',
-            \ 'errfile':      '^errfile\ze=',
-            \}
-
-let s:fields = {
-            \ 'command':     function('s:validate_command'),
-            \ 'cwd':         { k,v -> v =~ '\%(\f\|/\)\+' },
-            \ 'output':      function('s:validate_output'),
-            \ 'compiler':    { k,v -> v =~ '\w\+' },
-            \ 'options':     { k,v -> v =~ '\v(('.s:optspat.'),?)+$' },
-            \ 'success':     { k,v -> v:true },
-            \ 'fail':        { k,v -> v:true },
-            \ 'syntax':      { k,v -> v =~ '\w\+\(\.\w\+\)\?' },
-            \ 'errorformat': { k,v -> v:true },
-            \ 'outfile':     { k,v -> v =~ '\f\+' },
-            \ 'errfile':     { k,v -> v =~ '\f\+' },
-            \}
-
-
+let s:ut = tasks#util#init()
+let s:v  = s:ut.Vars
 
 
 
