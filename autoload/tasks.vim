@@ -281,6 +281,7 @@ function! tasks#list(as_json) abort
     if s:no_tasks(prj)
         return
     endif
+    call s:cmdline_bar(prj)
     echohl Comment
     echo "Task\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
@@ -298,6 +299,21 @@ function! tasks#list(as_json) abort
         exe 'echo' . n string(cmd)
     endfor
     echohl None
+endfunction
+
+""
+" Top bar for command-line tasks list.
+""
+function! s:cmdline_bar(prj) abort
+    echohl NonText
+    let header = has_key(a:prj, 'info') ?
+                \'Project: '. a:prj.info.name : 'Global tasks'
+    let right   = repeat('█', &columns - 10 - strlen(header))
+    echo '███'
+    echohl Pmenu
+    echon '   ' . header . '   '
+    echohl NonText
+    echon right
 endfunction
 
 ""
@@ -342,6 +358,7 @@ function! tasks#choose() abort
                 \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
                 \9: "\<F9>"}
     let dict = {}
+    call s:cmdline_bar(prj)
     echohl Comment
     echo "Key\tTask\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
