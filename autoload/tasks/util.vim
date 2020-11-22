@@ -43,6 +43,29 @@ function! s:Util.ft() abort
 endfunction
 
 
+""
+" Badge for messages in the command line.
+""
+function! s:Util.badge(...) abort
+    redraw
+    if a:0
+        echohl WarningMsg | echon '[tasks] ' | echohl None
+    else
+        echohl Delimiter  | echon '[tasks] ' | echohl None
+    endif
+    return ''
+endfunction
+
+
+""
+" Echo colored text in the command line.
+""
+function! s:Util.color(txt) abort
+    echohl String | exe 'echon' string(a:txt) | echohl None
+    return ''
+endfunction
+
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " vim: et sw=4 ts=4 sts=4 fdm=marker

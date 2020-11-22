@@ -97,7 +97,7 @@ function! tasks#run(args) abort
     let args = len(a) > 1 ? join(a[1:]) : ''
 
     if !has_key(tasks, name)
-        echon s:badge() 'not a valid task'
+        echon s:ut.badge() 'not a valid task'
         return
     endif
 
@@ -214,99 +214,6 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Tasks profiles
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-function! tasks#profile(name, reset) abort
-    if a:reset
-        call tasks#unset_profile()
-    elseif !empty(a:name)
-        call tasks#set_profile(a:name)
-    endif
-    call tasks#current_profile()
-endfunction
-
-""
-" Echo current profile in the command line.
-""
-function! tasks#current_profile() abort
-    let profile = tasks#get_profile()
-    redraw
-    if profile == v:null
-        echon s:badge() 'not a managed project'
-    else
-        echon s:badge() 'current profile is: ' s:color(profile)
-    endif
-endfunction
-
-""
-" Return current profile, or v:null.
-""
-function! tasks#get_profile() abort
-    let p = tasks#project(0)
-    return !empty(p) ? p.profile : v:null
-endfunction
-
-""
-" Set profile to a new value.
-""
-function! tasks#set_profile(profile) abort
-    let p = tasks#project(0)
-    if !empty(p)
-        let p.profile = a:profile
-        return v:true
-    else
-        return v:false
-    endif
-endfunction
-
-""
-" Reset project profile to default.
-""
-function! tasks#unset_profile() abort
-    let p = tasks#project(0)
-    if !empty(p)
-        let p.profile = 'default'
-        return v:true
-    else
-        return v:false
-    endif
-endfunction
-
-""
-" Command line completion for tasks profiles.
-""
-function! tasks#profiles(A, C, P) abort
-    try
-        return filter(sort(tasks#get().info.profiles), 'v:val=~#a:A')
-    catch
-        return []
-    endtry
-endfunction
-
-""
-" Loop among available profiles.
-""
-function! tasks#loop_profiles() abort
-    try
-        let p = tasks#project(0)
-        let curr = index(p.info.profiles, p.profile)
-        let np   = len(p.info.profiles)
-        if np > 1
-            if curr == np - 1
-                let curr = 0
-            else
-                let curr += 1
-            endif
-        endif
-        call tasks#set_profile(p.info.profiles[curr])
-    catch
-    endtry
-    call tasks#current_profile()
-endfunction
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " List tasks
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -364,7 +271,7 @@ function! s:tasks_as_json(prj) abort
     let py =        executable('python3') ? 'python3'
                 \ : executable('python')  ? 'python' : ''
     if py == ''
-        echon s:badge() 'no python executable found in $PATH'
+        echon s:ut.badge() 'no python executable found in $PATH'
         return
     endif
     let [ft, f] = [&ft, @%]
@@ -508,32 +415,11 @@ function! s:wrong_profile(project, task) abort
 endfunction
 
 ""
-" Echo colored text in the command line.
-""
-function! s:color(txt) abort
-    echohl String | exe 'echon' string(a:txt) | echohl None
-    return ''
-endfunction
-
-""
-" Badge for messages in the command line.
-""
-function! s:badge(...) abort
-    redraw
-    if a:0
-        echohl WarningMsg | echon '[tasks] ' | echohl None
-    else
-        echohl Delimiter  | echon '[tasks] ' | echohl None
-    endif
-    return ''
-endfunction
-
-""
 " No tasks available for current project/filetye
 ""
 function! s:no_tasks(prj) abort
     if empty(a:prj) || empty(a:prj.tasks)
-        echon s:badge() 'no tasks'
+        echon s:ut.badge() 'no tasks'
         return v:true
     endif
     return v:false
