@@ -13,7 +13,8 @@ let s:keys = [
             \'success', 'fail', 'syntax',
             \'errorformat', 'options',
             \'outfile', 'errfile',
-            \'name', 'description', 'allowglobal'
+            \'name', 'description',
+            \'profiles', 'allowglobal'
             \]
 exe printf("syn match TasksField '\\v\\C^%s|<%s>|<[A-Z_]+>\\ze\\=.+'", s:cmd, join(s:keys, '>|<'))
 

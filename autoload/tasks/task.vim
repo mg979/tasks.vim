@@ -37,7 +37,6 @@ function! s:validate_task(project, name) abort dict
     if s:is_env(p, n, t)            | return v:false | endif
     if s:is_projects_info(p, n, t)  | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
-    if s:wrong_profile(p, n, t)     | return v:false | endif
     if s:no_valid_fields(t.fields)  | return v:false | endif
 
     call s:clean_up_task(t)
@@ -70,7 +69,12 @@ function! s:is_projects_info(project, name, task) abort
     if a:task.type != 'info'
         return v:false
     endif
-    call extend(a:project.info, a:task.fields)
+    let info = a:project.info
+    call extend(info, a:task.fields)
+    let info.profiles = split(get(info, 'profiles', 'default'), ',')
+    if index(info.profiles, 'default') < 0
+        call insert(info.profiles, 'default')
+    endif
     return v:true
 endfunction
 
@@ -108,17 +112,6 @@ function! s:failing_conditions(item) abort
         endif
     endif
     return v:false
-endfunction
-
-
-""
-" If the task is project-local, task profile must match the current one.
-""
-function! s:wrong_profile(project, taskname, task) abort
-    if !a:task.local
-        return v:false
-    endif
-    return a:project.profile != a:task.profile
 endfunction
 
 
@@ -238,6 +231,7 @@ let s:patterns_env = {
 let s:patterns_info = {
             \ 'name': '^name\ze=',
             \ 'description': '^description\ze=',
+            \ 'profiles': '^profiles\ze=',
             \ 'allowglobal': '^allowglobal\ze=',
             \}
 

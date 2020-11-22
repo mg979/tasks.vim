@@ -19,13 +19,14 @@
 ""
 function! tasks#get(...) abort
     let reload = a:0 && a:1
-    let global = tasks#global(reload)
+    let global = deepcopy(tasks#global(reload))
+    let local  = deepcopy(tasks#project(reload))
     let gtasks = deepcopy(global.tasks)
-    let dict = extend(global, tasks#project(reload))
-    if s:can_include_global_tasks(dict)
-        call extend(dict.tasks, gtasks, 'keep')
+    let all = extend(global, local)
+    if s:can_include_global_tasks(all)
+        call extend(all.tasks, gtasks, 'keep')
     endif
-    return dict
+    return all
 endfunction
 
 
@@ -79,12 +80,12 @@ endfunction
 ""
 function! tasks#run(args) abort
     redraw
-    let prj = tasks#get(1)
+    let prj = tasks#get()
     if empty(prj)
         let root = s:find_root()
         if s:change_root(root)
             lcd `=root`
-            let prj = tasks#get(1)
+            let prj = tasks#get()
         endif
     endif
     if s:no_tasks(prj)
@@ -216,6 +217,15 @@ endfunction
 " Tasks profiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+function! tasks#profile(name, reset) abort
+    if a:reset
+        call tasks#unset_profile()
+    elseif !empty(a:name)
+        call tasks#set_profile(a:name)
+    endif
+    call tasks#current_profile()
+endfunction
+
 ""
 " Echo current profile in the command line.
 ""
@@ -253,8 +263,8 @@ endfunction
 ""
 " Reset project profile to default.
 ""
-function! tasks#unset_profile(prj) abort
-    let p = tasks#project()
+function! tasks#unset_profile() abort
+    let p = tasks#project(0)
     if !empty(p)
         let p.profile = 'default'
         return v:true
@@ -263,6 +273,37 @@ function! tasks#unset_profile(prj) abort
     endif
 endfunction
 
+""
+" Command line completion for tasks profiles.
+""
+function! tasks#profiles(A, C, P) abort
+    try
+        return filter(sort(tasks#get().info.profiles), 'v:val=~#a:A')
+    catch
+        return []
+    endtry
+endfunction
+
+""
+" Loop among available profiles.
+""
+function! tasks#loop_profiles() abort
+    try
+        let p = tasks#project(0)
+        let curr = index(p.info.profiles, p.profile)
+        let np   = len(p.info.profiles)
+        if np > 1
+            if curr == np - 1
+                let curr = 0
+            else
+                let curr += 1
+            endif
+        endif
+        call tasks#set_profile(p.info.profiles[curr])
+    catch
+    endtry
+    call tasks#current_profile()
+endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -273,12 +314,12 @@ endfunction
 " Display tasks in the command line, or in json format.
 ""
 function! tasks#list(as_json) abort
-    if a:as_json
-        call s:tasks_as_json()
+    let prj = tasks#get()
+    if s:no_tasks(prj)
         return
     endif
-    let prj = tasks#get(1)
-    if s:no_tasks(prj)
+    if a:as_json
+        call s:tasks_as_json(prj)
         return
     endif
     call s:cmdline_bar(prj)
@@ -319,7 +360,7 @@ endfunction
 ""
 " Display tasks in a buffer, in json format.
 ""
-function! s:tasks_as_json() abort
+function! s:tasks_as_json(prj) abort
     let py =        executable('python3') ? 'python3'
                 \ : executable('python')  ? 'python' : ''
     if py == ''
@@ -327,7 +368,7 @@ function! s:tasks_as_json() abort
         return
     endif
     let [ft, f] = [&ft, @%]
-    let json = json_encode(tasks#get(1))
+    let json = json_encode(a:prj)
     vnew +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
     silent! XTabNameBuffer Tasks
     wincmd H
@@ -350,7 +391,7 @@ endfunction
 ""
 function! tasks#choose() abort
     let i = get(g:, 'tasks_mapping_starts_at', 5)
-    let prj = tasks#get(1)
+    let prj = tasks#get()
     if s:no_tasks(prj)
         return
     endif
@@ -362,6 +403,9 @@ function! tasks#choose() abort
     echohl Comment
     echo "Key\tTask\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
+        if s:wrong_profile(prj, prj.tasks[t])
+            continue
+        endif
         let dict[Keys[i]] = t
         echohl Special
         echo '<F'.i.'>' . "\t"
@@ -454,6 +498,13 @@ function! s:can_include_global_tasks(dict) abort
         return index(split(allow, ','), s:ut.ft()) >= 0
     endif
     return allow == 'true' || allow == s:ut.ft()
+endfunction
+
+""
+" If the task is project-local, task profile must match the current one.
+""
+function! s:wrong_profile(project, task) abort
+    return a:task.local && a:project.profile != a:task.profile
 endfunction
 
 ""
