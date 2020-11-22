@@ -237,6 +237,7 @@ let s:patterns_env = {
 
 let s:patterns_info = {
             \ 'name': '^name\ze=',
+            \ 'description': '^description\ze=',
             \ 'allowglobal': '^allowglobal\ze=',
             \}
 
