@@ -236,7 +236,7 @@ function! tasks#list(as_json) abort
         echohl Constant
         echo t . repeat(' ', 24 - strlen(t))
         echohl String
-        let p = prj.tasks[t].local ? prj.profile : 'global'
+        let p = prj.tasks[t].local ? prj.tasks[t].profile : 'global'
         echon p . repeat(' ', 16 - strlen(p))
         echohl PreProc
         let out = split(get(prj.tasks[t].fields, 'output', 'quickfix'), ':')[0]
@@ -319,7 +319,7 @@ function! tasks#choose() abort
         echohl Constant
         echon t . repeat(' ', 24 - strlen(t))
         echohl String
-        let l = prj.tasks[t].local ? prj.profile : 'global'
+        let l = prj.tasks[t].local ? prj.tasks[t].profile : 'global'
         echon l . repeat(' ', 16 - strlen(l))
         echohl PreProc
         let out = split(get(prj.tasks[t].fields, 'output', 'quickfix'), ':')[0]
