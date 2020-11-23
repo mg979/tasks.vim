@@ -232,7 +232,6 @@ let s:patterns_info = {
             \ 'name': '^name\ze=',
             \ 'description': '^description\ze=',
             \ 'profiles': '^profiles\ze=',
-            \ 'allowglobal': '^allowglobal\ze=',
             \}
 
 let s:patterns_task = {

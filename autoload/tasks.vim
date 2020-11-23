@@ -20,18 +20,14 @@
 function! tasks#get(...) abort
     let reload = a:0 && a:1
     let local = deepcopy(tasks#project(reload))
-    if s:can_include_global_tasks(local)
-        if empty(local)
-            return deepcopy(tasks#global(reload))
-        else
-            let global = deepcopy(tasks#global(reload))
-            let gtasks = deepcopy(global.tasks)
-            let all = extend(global, local)
-            call extend(all.tasks, gtasks, 'keep')
-            return all
-        endif
+    if empty(local)
+        return deepcopy(tasks#global(reload))
     else
-        return local
+        let global = deepcopy(tasks#global(reload))
+        let gtasks = deepcopy(global.tasks)
+        let all = extend(global, local)
+        call extend(all.tasks, gtasks, 'keep')
+        return all
     endif
 endfunction
 
@@ -395,23 +391,6 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Helpers
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-""
-" By default, global tasks are not show in projects, unless the #info section
-" states otherwise. The 'allowglobal' key can be:
-" - true/false (default false)
-" - a list of allowed filetypes
-""
-function! s:can_include_global_tasks(dict) abort
-    if !has_key(a:dict, 'info')
-        return v:true
-    endif
-    let allow = get(a:dict.info, 'allowglobal', 'false')
-    if match(allow, ',') > 0
-        return index(split(allow, ','), s:ut.ft()) >= 0
-    endif
-    return allow == 'true' || allow == s:ut.ft()
-endfunction
 
 ""
 " If the task is project-local, task profile must match the current one.
