@@ -18,7 +18,7 @@ let s:Util = { 'Vars': {} }
 let s:v = s:Util.Vars
 
 let s:v.is_windows = has('win32') || has('win64') || has('win16') || has('win95')
-let s:uname        = s:v.is_windows ? '' : systemlist('s:uname')[0]
+let s:uname        = s:v.is_windows ? '' : systemlist('uname')[0]
 let s:v.is_linux   = s:uname == 'Linux'
 let s:v.is_macos   = s:uname == 'Darwin'
 let s:v.is_wsl     = exists('$WSLENV')
