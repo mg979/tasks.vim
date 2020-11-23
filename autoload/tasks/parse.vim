@@ -58,7 +58,7 @@
 " @param lines:    lines of the tasks file
 " @param is_local: true if it's project-local tasks file
 ""
-function! tasks#parse#do(lines, is_local) abort
+function! tasks#parse#do(lines, is_local, ignore_profiles) abort
     if empty(a:lines)
         return {}
     endif
@@ -77,9 +77,16 @@ function! tasks#parse#do(lines, is_local) abort
             let current = l:NewSection('__info__')
 
         elseif match(line, s:tasksect) == 1
+            " before creating a task, we check the profile compatibility,
+            " or we could overwrite an existing task with a bad one
+            " if the profile is wrong, ignore the section's fields
+            let profile = s:get_profile(line)
+            if !a:ignore_profiles && s:wrong_profile(profile)
+                let current = v:null
+                continue
+            endif
             let current = l:NewSection(matchstr(line, s:tasksect))
-            let current.profile = a:is_local && match(line, s:profpat) > 0 ?
-                        \ matchstr(line, s:profpat) : 'default'
+            let current.profile = profile
 
         elseif current isnot v:null
             for pat in values(current.patterns)
@@ -97,6 +104,23 @@ function! tasks#parse#do(lines, is_local) abort
 endfunction
 
 
+""
+" If the task is project-local, task profile must match the current one.
+""
+function! s:get_profile(line) abort
+    return a:line =~ s:profpat ? matchstr(a:line, s:profpat) : 'default'
+endfunction
+
+
+
+""
+" If the task is project-local, task profile must match the current one.
+""
+function! s:wrong_profile(profile) abort
+    return g:tasks['__profile__'] !=# a:profile
+endfunction
+
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Helpers
@@ -109,7 +133,6 @@ function! s:new_config(local) abort
     let p = { 'tasks': {}, 'invalidated': 0, 'env': {} }
     if a:local
         let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:ut.basedir() }
-        let p.profile = 'default'
         let p.info = { 'name': s:ut.basedir() }
     endif
     return p

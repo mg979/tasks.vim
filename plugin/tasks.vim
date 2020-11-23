@@ -21,7 +21,7 @@ let g:loaded_tasks = 1
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let g:tasks = {}
+let g:tasks = {'__profile__': 'default'}
 
 command! -nargs=1 -complete=customlist,tasks#complete Task call tasks#run(<q-args>)
 

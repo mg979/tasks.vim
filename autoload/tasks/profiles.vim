@@ -38,7 +38,7 @@ endfunction
 ""
 function! tasks#profiles#get() abort
     let p = tasks#project(0)
-    return !empty(p) ? p.profile : v:null
+    return !empty(p) ? g:tasks['__profile__'] : v:null
 endfunction
 
 ""
@@ -47,7 +47,8 @@ endfunction
 function! tasks#profiles#set(profile) abort
     let p = tasks#project(0)
     if !empty(p)
-        let p.profile = a:profile
+        let g:tasks['__profile__'] = a:profile
+        let p.invalidated = v:true
         return v:true
     else
         return v:false
@@ -60,7 +61,7 @@ endfunction
 function! tasks#profiles#unset() abort
     let p = tasks#project(0)
     if !empty(p)
-        let p.profile = 'default'
+        let g:tasks['__profile__'] = 'default'
         return v:true
     else
         return v:false
@@ -84,7 +85,7 @@ endfunction
 function! tasks#profiles#loop() abort
     try
         let p = tasks#project(0)
-        let curr = index(p.info.profiles, p.profile)
+        let curr = index(p.info.profiles, g:tasks['__profile__'])
         let np   = len(p.info.profiles)
         if np > 1
             if curr == np - 1

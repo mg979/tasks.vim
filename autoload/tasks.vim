@@ -21,9 +21,9 @@ function! tasks#get(...) abort
     let reload = a:0 && a:1
     let local = deepcopy(tasks#project(reload))
     if empty(local)
-        return deepcopy(tasks#global(reload))
+        return deepcopy(tasks#global(reload, 1))
     else
-        let global = deepcopy(tasks#global(reload))
+        let global = deepcopy(tasks#global(reload, 0))
         let gtasks = deepcopy(global.tasks)
         let all = extend(global, local)
         call extend(all.tasks, gtasks, 'keep')
@@ -44,7 +44,7 @@ function! tasks#project(reload) abort
     if !filereadable(f)
         return {}
     endif
-    let g:tasks[prj] = tasks#parse#do(readfile(f), 1)
+    let g:tasks[prj] = tasks#parse#do(readfile(f), 1, 0)
     return g:tasks[prj]
 endfunction
 
@@ -52,7 +52,7 @@ endfunction
 ""
 " Get the global tasks dictionary.
 ""
-function! tasks#global(reload) abort
+function! tasks#global(reload, ignore_profiles) abort
     if !a:reload && has_key(g:tasks, 'global') && !g:tasks.global.invalidated
         return g:tasks.global
     endif
@@ -60,7 +60,7 @@ function! tasks#global(reload) abort
     if !filereadable(f)
         return {}
     endif
-    let g:tasks.global = tasks#parse#do(readfile(f), 0)
+    let g:tasks.global = tasks#parse#do(readfile(f), 0, a:ignore_profiles)
     return g:tasks.global
 endfunction
 
@@ -223,7 +223,7 @@ endfunction
 " Display tasks in the command line, or in json format.
 ""
 function! tasks#list(as_json) abort
-    let prj = tasks#get()
+    let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
     endif
@@ -300,7 +300,7 @@ endfunction
 ""
 function! tasks#choose() abort
     let i = get(g:, 'tasks_mapping_starts_at', 5)
-    let prj = tasks#get()
+    let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
     endif
@@ -312,9 +312,6 @@ function! tasks#choose() abort
     echohl Comment
     echo "Key\tTask\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
-        if s:wrong_profile(prj, prj.tasks[t])
-            continue
-        endif
         let dict[Keys[i]] = t
         echohl Special
         echo '<F'.i.'>' . "\t"
@@ -391,13 +388,6 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Helpers
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-""
-" If the task is project-local, task profile must match the current one.
-""
-function! s:wrong_profile(project, task) abort
-    return a:task.local && a:project.profile != a:task.profile
-endfunction
 
 ""
 " No tasks available for current project/filetye
