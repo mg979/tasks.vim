@@ -62,8 +62,8 @@ function! tasks#parse#do(lines, is_local) abort
     if empty(a:lines)
         return {}
     endif
-    let p = s:new(a:is_local)
-    let l:New = function('tasks#task#new', [p, a:is_local])
+    let p = s:new_config(a:is_local)
+    let l:NewSection = function('tasks#task#new', [p, a:is_local])
     let current = v:null
 
     for line in a:lines
@@ -71,14 +71,13 @@ function! tasks#parse#do(lines, is_local) abort
             continue
 
         elseif match(line, s:envsect) == 0 && a:is_local
-            let current = l:New('__env__')
+            let current = l:NewSection('__env__')
 
         elseif match(line, s:infosect) == 0 && a:is_local
-            let current = l:New('__info__')
+            let current = l:NewSection('__info__')
 
         elseif match(line, s:tasksect) == 1
-            let name = matchstr(line, s:tasksect)
-            let current = l:New(name)
+            let current = l:NewSection(matchstr(line, s:tasksect))
             let current.profile = a:is_local && match(line, s:profpat) > 0 ?
                         \ matchstr(line, s:profpat) : 'default'
 
@@ -106,7 +105,7 @@ endfunction
 ""
 " Constructor for project/global configuration.
 ""
-function! s:new(local) abort
+function! s:new_config(local) abort
     let p = { 'tasks': {}, 'invalidated': 0, 'env': {} }
     if a:local
         let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:ut.basedir() }
