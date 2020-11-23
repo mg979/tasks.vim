@@ -19,14 +19,20 @@
 ""
 function! tasks#get(...) abort
     let reload = a:0 && a:1
-    let global = deepcopy(tasks#global(reload))
-    let local  = deepcopy(tasks#project(reload))
-    let gtasks = deepcopy(global.tasks)
-    let all = extend(global, local)
-    if s:can_include_global_tasks(all)
-        call extend(all.tasks, gtasks, 'keep')
+    let local = deepcopy(tasks#project(reload))
+    if s:can_include_global_tasks(local)
+        if empty(local)
+            return deepcopy(tasks#global(reload))
+        else
+            let global = deepcopy(tasks#global(reload))
+            let gtasks = deepcopy(global.tasks)
+            let all = extend(global, local)
+            call extend(all.tasks, gtasks, 'keep')
+            return all
+        endif
+    else
+        return local
     endif
-    return all
 endfunction
 
 
