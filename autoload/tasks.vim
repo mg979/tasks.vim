@@ -37,7 +37,7 @@ endfunction
 ""
 function! tasks#project(reload) abort
     let prj = s:ut.basedir()
-    if !a:reload && has_key(g:tasks, prj) && !g:tasks[prj].invalidated
+    if !a:reload && has_key(g:tasks, prj)
         return g:tasks[prj]
     endif
     let f = s:get_local_ini()
@@ -53,7 +53,7 @@ endfunction
 " Get the global tasks dictionary.
 ""
 function! tasks#global(reload, ignore_profiles) abort
-    if !a:reload && has_key(g:tasks, 'global') && !g:tasks.global.invalidated
+    if !a:reload && has_key(g:tasks, 'global')
         return g:tasks.global
     endif
     let f = s:get_global_ini()

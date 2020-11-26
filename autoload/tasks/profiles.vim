@@ -48,7 +48,6 @@ function! tasks#profiles#set(profile) abort
     let p = tasks#project(0)
     if !empty(p)
         let g:tasks['__profile__'] = a:profile
-        let p.invalidated = v:true
         return v:true
     else
         return v:false

@@ -16,21 +16,15 @@
 " When one tries to run a task, the global file and the local file are parsed
 " and merged. The parsed tasks are stored in the global table g:tasks.
 "
-" When a tasks file (global or local) is edited and saved, it is invalidated,
-" so that the next time that one tries to run a command, invalidated files
-" will be parsed again.
-"
 " The g:tasks table has the following structure:
 "
 "   g:tasks = {
 "     global = {
 "         tasks,        DICT
-"         invalidated,  BOOL
 "     },
 "     project_1 = {
 "         env,          DICT
 "         tasks,        DICT
-"         invalidated,  BOOL
 "         profile,      STRING
 "     },
 "     ...
@@ -130,7 +124,7 @@ endfunction
 " Constructor for project/global configuration.
 ""
 function! s:new_config(local) abort
-    let p = { 'tasks': {}, 'invalidated': 0, 'env': {} }
+    let p = { 'tasks': {}, 'env': {} }
     if a:local
         let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:ut.basedir() }
         let p.info = { 'name': s:ut.basedir() }
