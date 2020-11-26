@@ -39,7 +39,7 @@ endfunction
 " Base filetype.
 ""
 function! s:Util.ft() abort
-    return empty(&ft) ? '' : split(&ft, '\.')[0]
+    return empty(&ft) ? 'noft' : split(&ft, '\.')[0]
 endfunction
 
 
