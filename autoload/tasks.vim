@@ -106,6 +106,11 @@ function! tasks#run(args) abort
     let task = tasks[name]
     let cmd = s:choose_command(task)
 
+    if cmd =~ '^VIM: '
+        exe substitute(cmd, '^VIM: ', '', '')
+        return
+    endif
+
     let mode = s:get_cmd_mode(task)
     let opts = extend(s:get_pos(mode),
                 \     s:get_opts(get(task.fields, 'options', [])))

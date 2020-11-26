@@ -20,6 +20,8 @@ exe printf("syn match TasksField '\\v\\C^%s|<%s>|<[A-Z_]+>\\ze\\=.+'", s:cmd, jo
 syn match TasksSect   '^#\(\<env\>\|\<environment\>\|\<info\>\)'
 syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue
 syn match TasksEnvVar '\%(\%(Windows\|\<win\d\d\>\).\{-}\)\@<=%[A-Z_]\+%' containedin=dosiniValue
+syn match TaskVimCmd  '=\zsVIM: ' containedin=dosiniValue nextgroup=TaskVimEx
+syn match TaskVimEx   '.*' contained
 
 hi default link TasksSect   Constant
 hi default link TasksEnvVar Identifier
@@ -28,3 +30,5 @@ hi default link TasksField  dosiniLabel
 hi default link TaskName    Special
 hi default link TaskProfile Constant
 hi default link TaskComment Comment
+hi default link TaskVimCmd  Special
+hi default link TaskVimEx   String
