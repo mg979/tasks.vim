@@ -255,15 +255,11 @@ endfunction
 " Top bar for command-line tasks list.
 ""
 function! s:cmdline_bar(prj) abort
-    echohl NonText
+    echohl QuickFixLine
     let header = has_key(a:prj, 'info') ?
                 \'Project: '. a:prj.info.name : 'Global tasks'
-    let right   = repeat('█', &columns - 10 - strlen(header))
-    echo '███'
-    echohl Pmenu
-    echon '   ' . header . '   '
-    echohl NonText
-    echon right
+    let right   = repeat(' ', &columns - 10 - strlen(header))
+    echon '      ' . header . '   ' . right
 endfunction
 
 ""
