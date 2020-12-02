@@ -249,14 +249,26 @@ function! tasks#list(as_json) abort
     echo "Task\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
         let T = prj.tasks[t]
+        ""
+        " --------------------------- [ task name ] ---------------------------
+        ""
         echohl Constant
         echo t . repeat(' ', 24 - strlen(t))
+        ""
+        " ------------------------- [ task profile ] -------------------------
+        ""
         echohl String
         let p = T.local ? T.profile : 'global'
         echon p . repeat(' ', 16 - strlen(p))
+        ""
+        " -------------------------- [ output type ] --------------------------
+        ""
         echohl PreProc
         let out = split(get(T.fields, 'output', 'quickfix'), ':')[0]
         echon out . repeat(' ', 16 - strlen(out))
+        ""
+        " ------------------------- [ task command ] -------------------------
+        ""
         echohl None
         let cmd = s:choose_command(T)
         if T.local
@@ -327,16 +339,31 @@ function! tasks#choose() abort
     for t in keys(prj.tasks)
         let T = prj.tasks[t]
         let dict[Keys[i]] = t
+        ""
+        " ---------------------------- [ mapping ] ----------------------------
+        ""
         echohl Special
         echo '<F'.i.'>' . "\t"
+        ""
+        " --------------------------- [ task name ] ---------------------------
+        ""
         echohl Constant
         echon t . repeat(' ', 24 - strlen(t))
+        ""
+        " ------------------------- [ task profile ] -------------------------
+        ""
         echohl String
         let l = T.local ? T.profile : 'global'
         echon l . repeat(' ', 16 - strlen(l))
+        ""
+        " -------------------------- [ output type ] --------------------------
+        ""
         echohl PreProc
         let out = split(get(T.fields, 'output', 'quickfix'), ':')[0]
         echon out . repeat(' ', 16 - strlen(out))
+        ""
+        " ------------------------- [ task command ] -------------------------
+        ""
         echohl None
         let cmd = s:choose_command(T)
         if T.local
