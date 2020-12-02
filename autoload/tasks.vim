@@ -123,7 +123,7 @@ function! tasks#run(args) abort
                 \}, opts)
     let jobopts = {
                 \ 'env': prj.env,
-                \ 'cwd': s:get_cwd(task),
+                \ 'cwd': s:get_cwd(prj, task),
                 \}
     let mode = substitute(mode, ':.*', '', '')
     if mode == 'quickfix'
@@ -163,21 +163,29 @@ endfunction
 " If the task defines a cwd, it should be expanded.
 " Expand also $ROOT and $PRJNAME because they aren't set in vim environment.
 ""
-function! s:get_cwd(task) abort
+function! s:get_cwd(prj, task) abort
     if has_key(a:task.fields, 'cwd')
         let cwd = async#expand(a:task.fields.cwd)
         if s:v.is_windows
             let cwd = substitute(cwd, '%\([A-Z_]\+\)%', '$\1', 'g')
         endif
         if a:task.local
-            let cwd = substitute(cwd, '\$ROOT\>', '\=getcwd()', 'g')
-            let cwd = substitute(cwd, '\$PRJNAME\>', '\=a:task.info.name', 'g')
+            let cwd = s:expand_builtin_envvars(cwd, a:prj)
         endif
         let cwd = substitute(cwd, '\(\$[A-Z_]\+\)\>', '\=expand(submatch(1))', 'g')
         return cwd
     else
         return getcwd()
     endif
+endfunction
+
+""
+" Expand built-in variables $ROOT and $PRJNAME.
+""
+function! s:expand_builtin_envvars(string, prj) abort
+    let s = substitute(a:string, '\$ROOT\>', '\=getcwd()', 'g')
+    let s = substitute(s, '\$PRJNAME\>', '\=a:prj.info.name', 'g')
+    return s
 endfunction
 
 ""
@@ -240,16 +248,20 @@ function! tasks#list(as_json) abort
     echohl Comment
     echo "Task\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
+        let T = prj.tasks[t]
         echohl Constant
         echo t . repeat(' ', 24 - strlen(t))
         echohl String
-        let p = prj.tasks[t].local ? prj.tasks[t].profile : 'global'
+        let p = T.local ? T.profile : 'global'
         echon p . repeat(' ', 16 - strlen(p))
         echohl PreProc
-        let out = split(get(prj.tasks[t].fields, 'output', 'quickfix'), ':')[0]
+        let out = split(get(T.fields, 'output', 'quickfix'), ':')[0]
         echon out . repeat(' ', 16 - strlen(out))
         echohl None
-        let cmd = s:choose_command(prj.tasks[t])
+        let cmd = s:choose_command(T)
+        if T.local
+            let cmd = s:expand_builtin_envvars(cmd, prj)
+        endif
         let n = &columns - 66 < strlen(cmd) ? '' : 'n'
         exe 'echo' . n string(cmd)
     endfor
@@ -313,19 +325,23 @@ function! tasks#choose() abort
     echohl Comment
     echo "Key\tTask\t\t\tProfile\t\tOutput\t\tCommand"
     for t in keys(prj.tasks)
+        let T = prj.tasks[t]
         let dict[Keys[i]] = t
         echohl Special
         echo '<F'.i.'>' . "\t"
         echohl Constant
         echon t . repeat(' ', 24 - strlen(t))
         echohl String
-        let l = prj.tasks[t].local ? prj.tasks[t].profile : 'global'
+        let l = T.local ? T.profile : 'global'
         echon l . repeat(' ', 16 - strlen(l))
         echohl PreProc
-        let out = split(get(prj.tasks[t].fields, 'output', 'quickfix'), ':')[0]
+        let out = split(get(T.fields, 'output', 'quickfix'), ':')[0]
         echon out . repeat(' ', 16 - strlen(out))
         echohl None
-        let cmd = s:choose_command(prj.tasks[t])
+        let cmd = s:choose_command(T)
+        if T.local
+            let cmd = s:expand_builtin_envvars(cmd, prj)
+        endif
         if &columns - 74 < strlen(cmd)
             let cmd = cmd[:(&columns - 74)] . '…'
         endif
