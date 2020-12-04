@@ -270,7 +270,7 @@ function! tasks#list(as_json) abort
         " ------------------------- [ task command ] -------------------------
         ""
         echohl None
-        let cmd = s:choose_command(T)
+        let cmd = async#expand(s:choose_command(T))
         if T.local
             let cmd = s:expand_builtin_envvars(cmd, prj)
         endif
@@ -365,7 +365,7 @@ function! tasks#choose() abort
         " ------------------------- [ task command ] -------------------------
         ""
         echohl None
-        let cmd = s:choose_command(T)
+        let cmd = async#expand(s:choose_command(T))
         if T.local
             let cmd = s:expand_builtin_envvars(cmd, prj)
         endif
