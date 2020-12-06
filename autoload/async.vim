@@ -23,7 +23,10 @@
 " The main function is async#cmd() and it accepts two extra dictionaries that
 " can contain options for the job_start() function, and user options that are
 " stored in the global dictionary, and that can be used later in custom
-" callbacks that must be provided with the first optional dictionary.
+" callbacks that must be provided with the user optional dictionary.
+" While the user options can contain any field, the job options dict is
+" restricted to supported fields (because vim doesn't accept extra fields,
+" contrary to nvim).
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
