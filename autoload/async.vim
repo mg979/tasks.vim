@@ -495,7 +495,7 @@ endfun "}}}
 "  'noopen'     don't open qfix window       default: 0
 "  'silent'     the 3 above combined         default: 0
 "  'repeat'     repeat every n seconds       default: 0
-"  'update'     do :update before cmd        default: 0
+"  'nosave'     don't :update before cmd     default: 0
 "  'wall'       do :wall before cmd          default: 0
 "  'keepouts'   keep out/err in memory       default: 0
 "  'writelogs'  write out/err to logfiles    default: 0
@@ -518,7 +518,7 @@ fun! s:default_opts()
         \ 'nojump': 0,
         \ 'noopen': 0,
         \ 'repeat': 0,
-        \ 'update': 0,
+        \ 'nosave': 0,
         \ 'wall': 0,
         \ 'keepouts': 0,
         \ 'writelogs': 0,
@@ -543,7 +543,7 @@ function! s:user_opts(args, mode) abort
   endif
   if get(useropts, 'wall', 0)
     silent! wall
-  elseif get(useropts, 'update', 0)
+  elseif !get(useropts, 'nosave', 0)
     update
   endif
   return useropts
