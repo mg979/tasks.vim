@@ -3,7 +3,7 @@ runtime syntax/dosini.vim
 syn clear dosiniHeader
 syn clear dosiniComment
 syn match TaskComment  "^;.*$"
-syn region TaskName   start="^\s*\[" end="\]" nextgroup=TaskProfile
+syn region TaskName   start="^\s*\[" end="\]" contains=TaskOs nextgroup=TaskProfile
 syn match TasksError '^[^;\[]\+\ze=\?.*'
 syn match TaskProfile '\s\+@\w\+' contained
 
@@ -22,6 +22,7 @@ syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue
 syn match TasksEnvVar '\%(\%(Windows\|\<win\d\d\>\).\{-}\)\@<=%[A-Z_]\+%' containedin=dosiniValue
 syn match TaskVimCmd  '=\zsVIM: ' containedin=dosiniValue nextgroup=TaskVimEx
 syn match TaskVimEx   '.*' contained
+syn match TaskOs      '/\zs.*\ze]' contained
 
 hi default link TasksSect   Constant
 hi default link TasksEnvVar Identifier
@@ -32,3 +33,4 @@ hi default link TaskProfile Constant
 hi default link TaskComment Comment
 hi default link TaskVimCmd  Special
 hi default link TaskVimEx   String
+hi default link TaskOs      Identifier

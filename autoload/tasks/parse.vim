@@ -173,7 +173,7 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 let s:profpat  = '\v]\s+\@\zs\w+'
 
-let s:tasksect = '\v^\[\zs\.?(\l+-?\l+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
+let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
 let s:envsect  = '^#\(\<env\>\|\<environment\>\)$'
 let s:infosect = '^#info$'
 
