@@ -246,14 +246,14 @@ function! tasks#list(as_json) abort
     endif
     call s:cmdline_bar(prj)
     echohl Comment
-    echo "Task\t\t\tProfile\t\tOutput\t\tCommand"
-    for t in keys(prj.tasks)
+    echo "Task\t\t\t\tProfile\t\tOutput\t\tCommand"
+    for t in sort(keys(prj.tasks))
         let T = prj.tasks[t]
         ""
         " --------------------------- [ task name ] ---------------------------
         ""
         echohl Constant
-        echo t . repeat(' ', 24 - strlen(t))
+        echo t . repeat(' ', 32 - strlen(t))
         ""
         " ------------------------- [ task profile ] -------------------------
         ""
@@ -335,8 +335,8 @@ function! tasks#choose() abort
     let dict = {}
     call s:cmdline_bar(prj)
     echohl Comment
-    echo "Key\tTask\t\t\tProfile\t\tOutput\t\tCommand"
-    for t in keys(prj.tasks)
+    echo "Key\tTask\t\t\t\tProfile\t\tOutput\t\tCommand"
+    for t in sort(keys(prj.tasks))
         let T = prj.tasks[t]
         let dict[Keys[i]] = t
         ""
@@ -348,7 +348,7 @@ function! tasks#choose() abort
         " --------------------------- [ task name ] ---------------------------
         ""
         echohl Constant
-        echon t . repeat(' ', 24 - strlen(t))
+        echon t . repeat(' ', 32 - strlen(t))
         ""
         " ------------------------- [ task profile ] -------------------------
         ""
