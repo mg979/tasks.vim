@@ -76,6 +76,11 @@ fun! async#qfix(args, ...) abort
   let user = extend(s:default_opts(), a:0 ? a:1 : {})
   let user.args = a:args
 
+  " some grep defaults are different
+  if a:0 && get(a:1, 'grep', 0)
+    let user.noopen = get(a:1, 'noopen', 1)
+  endif
+
   " pattern for QuickFixCmdPre and QuickFixCmdPost
   if user.qfautocmd == ''
     let user.qfautocmd = user.grep ? 'grep' : 'make'
