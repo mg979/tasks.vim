@@ -290,9 +290,6 @@ endfun "}}}
 fun! s:cb_quickfix(job) abort
   " {{{1
   let [job, status] = [a:job, a:job.status]
-  if job.silent
-    let [job.noopen, job.nofocus, job.nojump] = [1, 1, 1]
-  endif
 
   let &errorformat = job.grep ? job.gfm : job.efm
 
@@ -323,7 +320,7 @@ fun! s:cb_quickfix(job) abort
     elseif !job.noopen
       silent redraw!
       exe (job.locl ? 'lopen' : 'botright copen')
-      if job.nofocus
+      if !job.focus
         wincmd p
       endif
     elseif job.grep
@@ -495,10 +492,9 @@ endfun "}}}
 "  'env'        environmental variables      default: {}
 "  'grep'       use grepprg, not makeprg     default: 0
 "  'locl'       use loclist, not qfix        default: 0
-"  'nofocus'    keep focus on window         default: 0
+"  'focus'      focus on qf window           default: 0
 "  'nojump'     don't jump to first item     default: 0
 "  'noopen'     don't open qfix window       default: 0
-"  'silent'     the 3 above combined         default: 0
 "  'repeat'     repeat every n seconds       default: 0
 "  'nosave'     don't :update before cmd     default: 0
 "  'wall'       do :wall before cmd          default: 0
@@ -518,8 +514,7 @@ fun! s:default_opts()
         \ 'append': 0,
         \ 'locl': 0,
         \ 'grep': 0,
-        \ 'silent': 0,
-        \ 'nofocus': 0,
+        \ 'focus': 0,
         \ 'nojump': 0,
         \ 'noopen': 0,
         \ 'repeat': 0,

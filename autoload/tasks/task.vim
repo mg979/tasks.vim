@@ -250,7 +250,7 @@ let s:patterns_task = {
 
 let s:options = [
             \'grep', 'locl', 'append',
-            \'nofocus', 'nojump', 'noopen',
+            \'focus', 'nojump', 'noopen',
             \'nosave', 'wall', 'keepouts',
             \'writelogs', 'termonquit',
             \]
