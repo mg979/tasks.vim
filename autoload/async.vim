@@ -313,7 +313,7 @@ fun! s:cb_quickfix(job) abort
       echo 'No results'
     endif
   else
-    if !job.grep && !status
+    if !job.grep && !status && empty(job.err)
       echo "Success:" job.cmd
     elseif !job.noopen
       silent redraw!
