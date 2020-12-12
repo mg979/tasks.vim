@@ -29,7 +29,7 @@ function! tasks#get(...) abort
     let local = deepcopy(tasks#project(reload))
     let gtasks = deepcopy(global.tasks)
     if !empty(local)
-        call filter(gtasks, "v:val.profile ==# 'always'")
+        call filter(gtasks, "v:val.tag ==# 'always'")
     endif
     let all = extend(global, local)
     call extend(all.tasks, gtasks, 'keep')
@@ -251,7 +251,7 @@ function! tasks#list(as_json) abort
     endif
     call s:cmdline_bar(prj)
     echohl Comment
-    echo "Task\t\t\t\tProfile\t\tOutput\t\tCommand"
+    echo "Task\t\t\t\tTag\t\tOutput\t\tCommand"
     for t in sort(keys(prj.tasks))
         let T = prj.tasks[t]
         ""
@@ -260,10 +260,12 @@ function! tasks#list(as_json) abort
         echohl Constant
         echo t . repeat(' ', 32 - strlen(t))
         ""
-        " ------------------------- [ task profile ] -------------------------
+        " --------------------------- [ task tag ] ----------------------------
         ""
         echohl String
-        let p = T.local ? T.profile : 'global'
+        let p = T.tag == 'always' || T.tag == 'default'
+                    \ ? T.local ? 'project' : 'global'
+                    \ : T.tag
         echon p . repeat(' ', 16 - strlen(p))
         ""
         " -------------------------- [ output type ] --------------------------
@@ -340,7 +342,7 @@ function! tasks#choose() abort
     let dict = {}
     call s:cmdline_bar(prj)
     echohl Comment
-    echo "Key\tTask\t\t\t\tProfile\t\tOutput\t\tCommand"
+    echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
     for t in sort(keys(prj.tasks))
         let T = prj.tasks[t]
         let dict[Keys[i]] = t
@@ -355,11 +357,13 @@ function! tasks#choose() abort
         echohl Constant
         echon t . repeat(' ', 32 - strlen(t))
         ""
-        " ------------------------- [ task profile ] -------------------------
+        " --------------------------- [ task tag ] ----------------------------
         ""
         echohl String
-        let l = T.local ? T.profile : 'global'
-        echon l . repeat(' ', 16 - strlen(l))
+        let p = T.tag == 'always' || T.tag == 'default'
+                    \ ? T.local ? 'project' : 'global'
+                    \ : T.tag
+        echon p . repeat(' ', 16 - strlen(p))
         ""
         " -------------------------- [ output type ] --------------------------
         ""

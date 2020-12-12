@@ -3,9 +3,9 @@ runtime syntax/dosini.vim
 syn clear dosiniHeader
 syn clear dosiniComment
 syn match TaskComment  "^;.*$"
-syn region TaskName   start="^\s*\[" end="\]" contains=TaskOs nextgroup=TaskProfile
+syn region TaskName   start="^\s*\[" end="\]" contains=TaskOs nextgroup=TaskTag
 syn match TasksError '^[^;\[]\+\ze=\?.*'
-syn match TaskProfile '\s\+@\w\+' contained
+syn match TaskTag '\s\+@\w\+' contained
 
 let s:cmd  = '%(<command>(:(\w+,?)+)?(\/(\w+,?)+)?)'
 let s:keys = [
@@ -29,7 +29,7 @@ hi default link TasksEnvVar Identifier
 hi default link TasksError  WarningMsg
 hi default link TasksField  dosiniLabel
 hi default link TaskName    Special
-hi default link TaskProfile Constant
+hi default link TaskTag     Constant
 hi default link TaskComment Comment
 hi default link TaskVimCmd  Special
 hi default link TaskVimEx   String

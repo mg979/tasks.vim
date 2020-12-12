@@ -21,16 +21,16 @@ let g:loaded_tasks = 1
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let g:tasks = {'__profile__': 'default'}
+let g:tasks = {'__tag__': 'default'}
 
 command! -nargs=1 -complete=customlist,tasks#complete Task call tasks#run(<q-args>)
 
 command! -bar -bang Tasks call tasks#list(<bang>0)
 
-command! -bang -nargs=? -complete=customlist,tasks#profiles#complete TasksProfile call tasks#profiles#apply(<q-args>, <bang>0)
+command! -bang -nargs=? -complete=customlist,tasks#tags#complete TasksTag call tasks#tags#apply(<q-args>, <bang>0)
 
-nnoremap <silent> <Plug>(Tasks-Choose)      :<C-u>call tasks#choose()<cr>
-nnoremap <silent> <Plug>(Tasks-Profiles)    :<C-u>call tasks#profiles#loop()<cr>
+nnoremap <silent> <Plug>(Tasks-Choose)  :<C-u>call tasks#choose()<cr>
+nnoremap <silent> <Plug>(Tasks-Tags)    :<C-u>call tasks#tags#loop()<cr>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

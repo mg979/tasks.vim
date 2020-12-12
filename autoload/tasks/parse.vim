@@ -30,13 +30,12 @@
 "     ...
 "   }
 "
-" No profile can be defined for the global tasks. It's a project thing.
 " Elements in x.tasks have the following structure:
 "
 "   taskname = {
 "     local,            BOOL
 "     fields,           DICT
-"     profile,          STRING
+"     tag,              STRING
 "     warnings,         LIST        TODO
 "   }
 "
@@ -71,17 +70,17 @@ function! tasks#parse#do(lines, local) abort
 
         elseif match(line, s:tasksect) == 1
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-            " before creating a task, we check the profile it belongs to,
-            " or we could overwrite a valid task with one with the same name,
-            " if the profile is wrong, ignore the section's fields
+            " before creating a task, we check its tag, or we could overwrite
+            " a valid task with one with the same name, if the tag is wrong,
+            " ignore the section's fields
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-            let profile = s:get_profile(line)
-            if s:wrong_profile(profile)
+            let tag = s:get_tag(line)
+            if s:wrong_tag(tag)
                 let current = v:null
                 continue
             endif
             let current = l:NewSection(matchstr(line, s:tasksect))
-            let current.profile = profile
+            let current.tag = tag
 
         elseif current isnot v:null
             for pat in values(current.patterns)
@@ -100,15 +99,15 @@ endfunction
 
 
 ""
-" If the task is project-local, task profile must match the current one.
+" If the task is project-local, task tag must match the current one.
 ""
-function! s:get_profile(line) abort
-    if a:line =~ s:profpat
-        let profile = matchstr(a:line, s:profpat)
-        if profile != 'always' && index(g:tasks['__known_tags__'], profile) < 0
-            call add(g:tasks['__known_tags__'], profile)
+function! s:get_tag(line) abort
+    if a:line =~ s:tagpat
+        let tag = matchstr(a:line, s:tagpat)
+        if tag != 'always' && index(g:tasks['__known_tags__'], tag) < 0
+            call add(g:tasks['__known_tags__'], tag)
         endif
-        return profile
+        return tag
     endif
     return 'default'
 endfunction
@@ -116,10 +115,10 @@ endfunction
 
 
 ""
-" If the task is project-local, task profile must match the current one.
+" If the task is project-local, task tag must match the current one.
 ""
-function! s:wrong_profile(profile) abort
-    return a:profile !=# 'always' && g:tasks['__profile__'] !=# a:profile
+function! s:wrong_tag(tag) abort
+    return a:tag !=# 'always' && g:tasks['__tag__'] !=# a:tag
 endfunction
 
 
@@ -179,8 +178,8 @@ endfunction
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Script variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-let s:profpat  = '\v]\s+\@\zs\w+'
-" let s:profpat  = '\v]\s+\zs\(\@\w+\s*\)\+'
+let s:tagpat  = '\v]\s+\@\zs\w+'
+" let s:tagpat  = '\v]\s+\zs\(\@\w+\s*\)\+'
 
 let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
 let s:envsect  = '^#\(\<env\>\|\<environment\>\)$'
