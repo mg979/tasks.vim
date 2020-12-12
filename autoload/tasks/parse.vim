@@ -46,48 +46,37 @@
 " Function: tasks#parse#do
 " Parse and validate a tasks config file.
 "
-" @param lines:           lines of the tasks file
-" @param is_local:        true if it's a project-local tasks file
-" @param ignore_profiles: when all global profiles can be accepted, because
-"                         we're not inside a managed project
-"
-" The last parameter can be true only when parsing the global configuration,
-" and there was no local configuration to parse.
+" @param lines: lines of the tasks file
+" @param local: true if it's a project-local tasks file
 "
 " Returns: the validated tasks for the parsed configuration file
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! tasks#parse#do(lines, is_local, ignore_profiles) abort
+function! tasks#parse#do(lines, local) abort
     if empty(a:lines)
         return {}
     endif
-    let p = s:new_config(a:is_local)
-    let l:NewSection = function('tasks#task#new', [p, a:is_local])
+    let p = s:new_config(a:local)
+    let l:NewSection = function('tasks#task#new', [p, a:local])
     let current = v:null
 
     for line in a:lines
         if match(line, '^;') == 0 || empty(line)
             continue
 
-        elseif a:is_local && match(line, s:envsect) == 0
+        elseif a:local && match(line, s:envsect) == 0
             let current = l:NewSection('__env__')
 
-        elseif a:is_local && match(line, s:infosect) == 0
+        elseif a:local && match(line, s:infosect) == 0
             let current = l:NewSection('__info__')
 
         elseif match(line, s:tasksect) == 1
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-            " ignore_profiles is set when the task is global and we're not in
-            " a managed project, in this case we just don't care about profiles
-            " because they aren't used outside of managed projects
-            "
-            " otherwise, before creating a task, we check the profile compatibility,
+            " before creating a task, we check the profile it belongs to,
             " or we could overwrite a valid task with one with the same name,
-            " but with the wrong profile
-            "
             " if the profile is wrong, ignore the section's fields
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
             let profile = s:get_profile(line)
-            if !a:ignore_profiles && s:wrong_profile(profile)
+            if s:wrong_profile(profile)
                 let current = v:null
                 continue
             endif
@@ -105,7 +94,7 @@ function! tasks#parse#do(lines, is_local, ignore_profiles) abort
         endif
     endfor
     call filter(p.tasks, { k,v -> v.validate(p,k)})
-    call s:update_prjname(p, a:is_local)
+    call s:update_prjname(p, a:local)
     return s:rename_tasks(p)
 endfunction
 
@@ -114,7 +103,14 @@ endfunction
 " If the task is project-local, task profile must match the current one.
 ""
 function! s:get_profile(line) abort
-    return a:line =~ s:profpat ? matchstr(a:line, s:profpat) : 'default'
+    if a:line =~ s:profpat
+        let profile = matchstr(a:line, s:profpat)
+        if profile != 'always' && index(g:tasks['__known_tags__'], profile) < 0
+            call add(g:tasks['__known_tags__'], profile)
+        endif
+        return profile
+    endif
+    return 'default'
 endfunction
 
 
@@ -123,7 +119,7 @@ endfunction
 " If the task is project-local, task profile must match the current one.
 ""
 function! s:wrong_profile(profile) abort
-    return g:tasks['__profile__'] !=# a:profile
+    return a:profile !=# 'always' && g:tasks['__profile__'] !=# a:profile
 endfunction
 
 
@@ -184,6 +180,7 @@ endfunction
 " Script variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 let s:profpat  = '\v]\s+\@\zs\w+'
+" let s:profpat  = '\v]\s+\zs\(\@\w+\s*\)\+'
 
 let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
 let s:envsect  = '^#\(\<env\>\|\<environment\>\)$'

@@ -71,10 +71,6 @@ function! s:is_projects_info(project, name, task) abort
     endif
     let info = a:project.info
     call extend(info, a:task.fields)
-    let info.profiles = split(get(info, 'profiles', 'default'), ',')
-    if index(info.profiles, 'default') < 0
-        call insert(info.profiles, 'default')
-    endif
     return v:true
 endfunction
 

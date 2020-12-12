@@ -26,45 +26,28 @@ endfunction
 function! tasks#profiles#current() abort
     let profile = tasks#profiles#get()
     redraw
-    if profile == v:null
-        echon s:ut.badge() 'not a managed project'
-    else
-        echon s:ut.badge() 'current profile is: ' s:ut.color(profile)
-    endif
+    echon s:ut.badge() 'current profile is: ' s:ut.color(profile)
 endfunction
 
 ""
-" Return current profile, or v:null.
+" Return current profile.
 ""
 function! tasks#profiles#get() abort
-    let p = tasks#project(0)
-    return !empty(p) ? g:tasks['__profile__'] : v:null
+    return g:tasks['__profile__']
 endfunction
 
 ""
 " Set profile to a new value.
 ""
 function! tasks#profiles#set(profile) abort
-    let p = tasks#project(0)
-    if !empty(p)
-        let g:tasks['__profile__'] = a:profile
-        return v:true
-    else
-        return v:false
-    endif
+    let g:tasks['__profile__'] = a:profile
 endfunction
 
 ""
 " Reset project profile to default.
 ""
 function! tasks#profiles#unset() abort
-    let p = tasks#project(0)
-    if !empty(p)
-        let g:tasks['__profile__'] = 'default'
-        return v:true
-    else
-        return v:false
-    endif
+    let g:tasks['__profile__'] = 'default'
 endfunction
 
 ""
@@ -72,20 +55,30 @@ endfunction
 ""
 function! tasks#profiles#complete(A, C, P) abort
     try
-        return filter(sort(tasks#get().info.profiles), 'v:val=~#a:A')
+        return filter(sort(s:get_know_profiles()), 'v:val=~#a:A')
     catch
         return []
     endtry
 endfunction
 
 ""
+" Get the list of profiles names that are known globally or for current
+" project.
+""
+function! s:get_know_profiles() abort
+    " call tasks#get()
+    return g:tasks['__known_tags__']
+endfunction
+
+""
 " Loop among available profiles.
 ""
 function! tasks#profiles#loop() abort
+    call tasks#get(1)
     try
-        let p = tasks#project(0)
-        let curr = index(p.info.profiles, g:tasks['__profile__'])
-        let np   = len(p.info.profiles)
+        let profiles = s:get_know_profiles()
+        let curr = index(profiles, g:tasks['__profile__'])
+        let np   = len(profiles)
         if np > 1
             if curr == np - 1
                 let curr = 0
@@ -93,7 +86,7 @@ function! tasks#profiles#loop() abort
                 let curr += 1
             endif
         endif
-        call tasks#profiles#set(p.info.profiles[curr])
+        call tasks#profiles#set(profiles[curr])
     catch
     endtry
     call tasks#profiles#current()

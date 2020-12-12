@@ -14,21 +14,26 @@
 
 ""
 " Get valid tasks, fetched from both global and project-local config files.
+" Configuration files are parsed, then merged. Tasks are a nested, so they will
+" have to be merged independently, giving precedence to project-local tasks.
+" If in a managed project, allow global tasks if they have the 'always' tag.
+"
 " @param ...: force reloading of config files
 " @return: the merged dictionary with tasks
 ""
 function! tasks#get(...) abort
+    " known tags will be regenerated
+    let g:tasks['__known_tags__'] = ['default']
     let reload = a:0 && a:1
+    let global = deepcopy(tasks#global(reload))
     let local = deepcopy(tasks#project(reload))
-    if empty(local)
-        return deepcopy(tasks#global(reload, 1))
-    else
-        let global = deepcopy(tasks#global(reload, 0))
-        let gtasks = deepcopy(global.tasks)
-        let all = extend(global, local)
-        call extend(all.tasks, gtasks, 'keep')
-        return all
+    let gtasks = deepcopy(global.tasks)
+    if !empty(local)
+        call filter(gtasks, "v:val.profile ==# 'always'")
     endif
+    let all = extend(global, local)
+    call extend(all.tasks, gtasks, 'keep')
+    return all
 endfunction
 
 
@@ -44,7 +49,7 @@ function! tasks#project(reload) abort
     if !filereadable(f)
         return {}
     endif
-    let g:tasks[prj] = tasks#parse#do(readfile(f), 1, 0)
+    let g:tasks[prj] = tasks#parse#do(readfile(f), 1)
     return g:tasks[prj]
 endfunction
 
@@ -52,7 +57,7 @@ endfunction
 ""
 " Get the global tasks dictionary.
 ""
-function! tasks#global(reload, ignore_profiles) abort
+function! tasks#global(reload) abort
     if !a:reload && has_key(g:tasks, 'global')
         return g:tasks.global
     endif
@@ -60,7 +65,7 @@ function! tasks#global(reload, ignore_profiles) abort
     if !filereadable(f)
         return {}
     endif
-    let g:tasks.global = tasks#parse#do(readfile(f), 0, a:ignore_profiles)
+    let g:tasks.global = tasks#parse#do(readfile(f), 0)
     return g:tasks.global
 endfunction
 
