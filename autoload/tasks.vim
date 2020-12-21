@@ -331,15 +331,28 @@ endfunction
 " Choose among available tasks (called with mapping).
 ""
 function! tasks#choose() abort
-    let i = get(g:, 'tasks_mapping_starts_at', 5)
     let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
     endif
-    let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
-                \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
-                \9: "\<F9>"}
+    if len(keys(prj.tasks)) <= 8
+        let Keys = { 1: "\<F5>", 2: "\<F6>", 3: "\<F7>", 4: "\<F8>",
+                    \5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
+        let l:PnKey = { c -> '<F'.(c+4).'>' . "\t"}
+    elseif len(keys(prj.tasks)) <= 12
+        let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
+                    \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
+                    \9: "\<F9>", 10: "\<F10>", 11: "\<F11>", 12: "\<F12>"}
+        let l:PnKey = { c -> '<F'.c.'>' . "\t"}
+    else
+        let Keys = {}
+        for i in range(1, 26)
+            let Keys[i] = nr2char(96 + i)
+        endfor
+        let l:PnKey = { c -> Keys[c] . "\t"}
+    endif
     let dict = {}
+    let i = 1
     call s:cmdline_bar(prj)
     echohl Comment
     echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
@@ -350,7 +363,7 @@ function! tasks#choose() abort
         " ---------------------------- [ mapping ] ----------------------------
         ""
         echohl Special
-        echo '<F'.i.'>' . "\t"
+        echo l:PnKey(i)
         ""
         " --------------------------- [ task name ] ---------------------------
         ""
@@ -378,17 +391,15 @@ function! tasks#choose() abort
         if T.local
             let cmd = s:expand_builtin_envvars(cmd, prj)
         endif
-        if &columns - 74 < strlen(cmd)
-            let cmd = cmd[:(&columns - 74)] . '…'
+        if &columns - 84 < strlen(cmd)
+            let cmd = cmd[:(&columns - 84)] . '…'
         endif
         echon cmd
         let i += 1
-        if i > 12
-            let i = 1
-        endif
     endfor
     echo ''
     let ch = getchar()
+    let ch = ch > 0 ? nr2char(ch) : ch
     if index(keys(dict), ch) >= 0
         exe 'Task' dict[ch]
     else
