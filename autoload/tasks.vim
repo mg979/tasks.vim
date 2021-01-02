@@ -112,6 +112,9 @@ function! tasks#run(args) abort
     let cmd = s:choose_command(task)
 
     if cmd =~ '^VIM: '
+        if args != ''
+            let cmd .= ' ' . args
+        endif
         exe substitute(cmd, '^VIM: ', '', '')
         return
     endif
@@ -343,8 +346,9 @@ endfunction
 
 ""
 " Choose among available tasks (called with mapping).
+" @param ...: prompt for extra args
 ""
-function! tasks#choose() abort
+function! tasks#choose(...) abort
     let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
@@ -412,7 +416,15 @@ function! tasks#choose() abort
     let ch = getchar()
     let ch = ch > 0 ? nr2char(ch) : ch
     if index(keys(dict), ch) >= 0
-        exe 'Task' dict[ch]
+        if a:0
+            redraw
+            echohl Delimiter  | echo 'Command: ' | echohl None
+            echon s:expand_task_cmd(prj.tasks[dict[ch]], prj)
+            let args = input('args: ')
+        else
+            let args = ''
+        endif
+        exe 'Task' dict[ch] args
     else
         redraw
     endif

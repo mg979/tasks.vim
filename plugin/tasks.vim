@@ -30,6 +30,7 @@ command! -bar -bang Tasks call tasks#list(<bang>0)
 command! -bang -nargs=? -complete=customlist,tasks#tags#complete TasksTag call tasks#tags#apply(<q-args>, <bang>0)
 
 nnoremap <silent> <Plug>(Tasks-Choose)  :<C-u>call tasks#choose()<cr>
+nnoremap <silent> <Plug>(Tasks-Choose!) :<C-u>call tasks#choose(1)<cr>
 nnoremap <silent> <Plug>(Tasks-Tags)    :<C-u>call tasks#tags#loop()<cr>
 
 
