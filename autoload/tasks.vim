@@ -112,10 +112,7 @@ function! tasks#run(args) abort
     let cmd = s:choose_command(task)
 
     if cmd =~ '^VIM: '
-        if args != ''
-            let cmd .= ' ' . args
-        endif
-        exe substitute(cmd, '^VIM: ', '', '')
+        call s:execute_vim_command(cmd, args)
         return
     endif
 
@@ -138,6 +135,17 @@ function! tasks#run(args) abort
         call async#qfix(args, useropts, jobopts)
     else
         call async#cmd(cmd . ' ' . args, mode, useropts, jobopts)
+    endif
+endfunction
+
+""
+" It's a vim command, execute as-is.
+""
+function! s:execute_vim_command(cmd, args)
+    if a:args != ''
+        execute substitute(a:cmd . ' ' . a:args, '^VIM: ', '', '')
+    else
+        execute substitute(a:cmd, '^VIM: ', '', '')
     endif
 endfunction
 
@@ -196,13 +204,13 @@ endfunction
 ""
 " Returns task command with expanded env variables and vim placeholders.
 ""
-fun! s:expand_task_cmd(task, prj)
+function! s:expand_task_cmd(task, prj)
     let cmd = async#expand(s:choose_command(a:task))
     if a:task.local
         let cmd = s:expand_builtin_envvars(cmd, a:prj)
     endif
     return cmd
-endfun
+endfunction
 
 ""
 " Expand built-in variables $ROOT and $PRJNAME.
