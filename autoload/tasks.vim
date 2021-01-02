@@ -361,7 +361,10 @@ function! tasks#choose(...) abort
     if s:no_tasks(prj)
         return
     endif
-    if len(keys(prj.tasks)) <= 8
+    if len(keys(prj.tasks)) == 1
+        let Keys = { 1: "\<F6>"}
+        let l:PnKey = { c -> '<F6>' . "\t"}
+    elseif len(keys(prj.tasks)) <= 8
         let Keys = { 1: "\<F5>", 2: "\<F6>", 3: "\<F7>", 4: "\<F8>",
                     \5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
         let l:PnKey = { c -> '<F'.(c+4).'>' . "\t"}
