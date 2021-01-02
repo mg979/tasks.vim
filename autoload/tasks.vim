@@ -151,17 +151,23 @@ function! s:choose_command(task) abort
     endif
     " loop all the commands and choose the one with the highest score
     " score is based on specificity for system (/) and filetype (:)
-    let best = [0, '']
-    for cmd in keys(cmds)
-        let score = (cmd =~ '/') + (cmd =~ ':')
-        if score >= best[0]
-            let best = [score, cmds[cmd]]
+    " best has elements: [key, command, score]
+    let best = ['', '', 0]
+    for key in keys(cmds)
+        let score = (key =~ '/') + (key =~ ':')
+        if score >= best[2]
+            let best = [key, cmds[key], score]
         endif
     endfor
 
     " clear all commands from task, the chosen command will be set instead
     call filter(a:task.fields, 'v:key !~ cmdpat')
-    return best[1] != '' ? best[1] : &makeprg
+    call filter(a:task.fields, 'v:key !~ cmppat')
+    if best[1] != ''
+        let a:task.fields[best[0]] = best[1]
+        return best[1]
+    endif
+    return &makeprg
 endfunction
 
 ""
