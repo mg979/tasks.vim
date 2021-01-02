@@ -191,6 +191,17 @@ function! s:get_cwd(prj, task) abort
 endfunction
 
 ""
+" Returns task command with expanded env variables and vim placeholders.
+""
+fun! s:expand_task_cmd(task, prj)
+    let cmd = async#expand(s:choose_command(a:task))
+    if a:task.local
+        let cmd = s:expand_builtin_envvars(cmd, a:prj)
+    endif
+    return cmd
+endfun
+
+""
 " Expand built-in variables $ROOT and $PRJNAME.
 ""
 function! s:expand_builtin_envvars(string, prj) abort
@@ -283,10 +294,7 @@ function! tasks#list(as_json) abort
         " ------------------------- [ task command ] -------------------------
         ""
         echohl None
-        let cmd = async#expand(s:choose_command(T))
-        if T.local
-            let cmd = s:expand_builtin_envvars(cmd, prj)
-        endif
+        let cmd = s:expand_task_cmd(T, prj)
         let n = &columns - 66 < strlen(cmd) ? '' : 'n'
         exe 'echo' . n string(cmd)
     endfor
@@ -393,10 +401,7 @@ function! tasks#choose() abort
         " ------------------------- [ task command ] -------------------------
         ""
         echohl None
-        let cmd = async#expand(s:choose_command(T))
-        if T.local
-            let cmd = s:expand_builtin_envvars(cmd, prj)
-        endif
+        let cmd = s:expand_task_cmd(T, prj)
         if &columns - 84 < strlen(cmd)
             let cmd = cmd[:(&columns - 84)] . '…'
         endif
