@@ -23,7 +23,7 @@ let s:v.is_linux   = s:uname == 'Linux'
 let s:v.is_macos   = s:uname == 'Darwin'
 let s:v.is_wsl     = exists('$WSLENV')
 
-let s:v.pospat     = '<top>|<bottom>|<left>|<right>'
+let s:v.pospat     = '<top>|<bottom>|<left>|<right>|<vertical>'
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 

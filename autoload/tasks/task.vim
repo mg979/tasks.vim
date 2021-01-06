@@ -155,9 +155,9 @@ endfunction
 
 function! s:validate_output(key, val) abort
     if a:val =~ '^terminal'
-        return a:val =~ '^\vterminal(:('.s:v.pospat.'))?(:\d+)?$'
+        return a:val =~ '^\vterminal(:.*)?$'
     elseif a:val =~ '^buffer'
-        return a:val =~ '^\vbuffer(:('.s:v.pospat.'))?(:\d+)?$'
+        return a:val =~ '^\vbuffer(:.*)?$'
     elseif a:val =~ '^external'
         return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
     else
