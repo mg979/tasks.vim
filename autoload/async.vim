@@ -82,21 +82,8 @@ fun! async#qfix(args, ...) abort
   endif
 
   " store old settings
-  let [user._prg, user._gprg, user._efm, user._gfm] = [&makeprg, &grepprg, &errorformat, &grepformat]
-
-  " apply compiler settings, but only to get values, then restore original
-  if user.compiler != ''
-    try
-      exe 'compiler' user.compiler
-    catch /E666:/
-      echohl ErrorMsg
-      echo 'E666: compiler not supported:' user.compiler
-      echohl None
-      return v:null
-    endtry
-    let [user.prg, user.gprg, user.efm, user.gfm] = [&makeprg, &grepprg, &errorformat, &grepformat]
-    let [&makeprg, &grepprg, &errorformat, &grepformat] = [user._prg, user._gprg, user._efm, user._gfm]
-  endif
+  let     [user._prg, user._gprg, user._efm,    user._gfm] =
+        \ [&makeprg,  &grepprg,   &errorformat, &grepformat]
 
   exe (user.locl ? 'lclose' : 'cclose')
 
@@ -117,6 +104,23 @@ fun! async#compiler(args, opts, ...) abort
   "{{{1
   let args = split(a:args)
   let opts = extend({ 'compiler': args[0] }, a:opts)
+
+  " apply compiler settings, but only to get values, then restore original
+  let     [opts._prg,   opts._gprg, opts._efm,      opts._gfm] =
+        \ [&l:makeprg,  &l:grepprg, &l:errorformat, &l:grepformat]
+  try
+    exe 'compiler' opts.compiler
+  catch /E666:/
+    echohl ErrorMsg
+    echo 'E666: compiler not supported:' opts.compiler
+    echohl None
+    return v:null
+  endtry
+  let     [opts.prg,    opts.gprg,  opts.efm,       opts.gfm] =
+        \ [&l:makeprg,  &l:grepprg, &l:errorformat, &l:grepformat]
+  let     [&l:makeprg,  &l:grepprg, &l:errorformat, &l:grepformat] =
+        \ [opts._prg,   opts._gprg, opts._efm,      opts._gfm]
+
   return async#qfix(join(args[1:]), opts, a:0 ? a:1 : {})
 endfun "}}}
 
