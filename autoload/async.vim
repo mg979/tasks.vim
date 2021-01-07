@@ -76,11 +76,6 @@ fun! async#qfix(args, ...) abort
   let user = extend(s:default_opts(), a:0 ? a:1 : {})
   let user.args = a:args
 
-  " some grep defaults are different
-  if a:0 && get(a:1, 'grep', 0)
-    let user.noopen = get(a:1, 'noopen', 1)
-  endif
-
   " pattern for QuickFixCmdPre and QuickFixCmdPost
   if user.qfautocmd == ''
     let user.qfautocmd = user.grep ? 'grep' : 'make'
@@ -317,7 +312,7 @@ fun! s:cb_quickfix(job) abort
   else
     if !job.grep && !status && empty(job.err)
       echo "Success:" job.cmd
-    elseif !job.noopen
+    elseif job.openqf
       silent redraw!
       exe (job.locl ? 'lopen' : 'botright copen')
       if !job.focus
@@ -494,7 +489,7 @@ endfun "}}}
 "  'locl'       use loclist, not qfix        default: 0
 "  'focus'      focus on qf window           default: 0
 "  'nojump'     don't jump to first item     default: 0
-"  'noopen'     don't open qfix window       default: 0
+"  'openqf'     open qfix window             default: 0
 "  'repeat'     repeat every n seconds       default: 0
 "  'nosave'     don't :update before cmd     default: 0
 "  'wall'       do :wall before cmd          default: 0
@@ -516,7 +511,7 @@ fun! s:default_opts()
         \ 'grep': 0,
         \ 'focus': 0,
         \ 'nojump': 0,
-        \ 'noopen': 0,
+        \ 'openqf': 0,
         \ 'repeat': 0,
         \ 'nosave': 0,
         \ 'wall': 0,
