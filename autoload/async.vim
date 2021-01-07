@@ -42,6 +42,7 @@ let s:id = 0
 " @param ...:  extra args, can be one or two dicts
 "              - first is 'useropts' (user data stored in g:async_jobs[id])
 "              - second is 'jobopts' (merged with job options)
+" Returns: the id of the job if successful, or 0
 ""=============================================================================
 fun! async#cmd(cmd, mode, ...) abort
   " {{{1
@@ -306,27 +307,34 @@ fun! s:cb_quickfix(job) abort
 
   let &errorformat = job._efm
 
-  call setqflist([], "r", job)
-  if job.grep && status
+  " empty list and status > 0 indicates some failure, maybe a wrong command
+  let failure = status && (job.locl ? empty(getloclist(1)) : empty(getqflist())) 
+
+  if job.grep
     if status > 1 || status == 1 && !empty(job.err)
       call s:echo([job.cmd] + job.err, 'WarningMsg')
     elseif status == 1
       echo 'No results'
-    endif
-  else
-    if !job.grep && !status && empty(job.err)
-      echo "Success:" job.cmd
-    elseif job.openqf
-      silent redraw!
-      exe (job.locl ? 'lopen' : 'botright copen')
-      if !job.focus
-        wincmd p
-      endif
-    elseif job.grep
-      echo 'Found' (len(job.out) + len(job.err)) 'matches'
     else
-      call s:echo(['Failure: '. job.cmd], 'WarningMsg')
+      echo 'Found' (len(job.out) + len(job.err)) 'matches'
     endif
+
+  elseif !status && empty(job.err)
+    echo "Success:" job.cmd
+
+  elseif failure
+    call s:echo(['Exit status: '. status, 'Command: '. job.cmd]
+          \ + job.out + job.err, 'WarningMsg')
+
+  elseif job.openqf
+    silent redraw!
+    exe (job.locl ? 'lopen' : 'botright copen')
+    if !job.focus
+      wincmd p
+    endif
+
+  elseif job.nojump
+    call s:echo(['Exit status: '. status, 'Command: '. job.cmd], 'WarningMsg')
   endif
 endfun "}}}
 
@@ -774,10 +782,14 @@ endfunction
 " @param ...: will be 'err' if echoerr is to be used
 ""
 fun! s:echo(list, ...)
+  if empty(a:list)
+    return
+  endif
   call filter(a:list, { k,v -> v != '' })
   let txt = map(a:list, { k,v -> ':echom ' . string(v) })
   if a:0
-    let txt = [':echohl ' . a:1] + txt + [':echohl None']
+    call insert(txt, ':echohl ' . a:1)
+    call insert(txt, ':echohl None', 2)
   endif
   let @" = join(txt, "\n")
   call feedkeys(':exe @' . "\n", 'n')
