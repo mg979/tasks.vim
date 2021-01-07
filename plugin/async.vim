@@ -13,9 +13,9 @@ endif
 let g:loaded_async = 1
 "}}}
 
-" System:    Run a shell command asynchronously and print output in a buffer.
 " Async:     Run a shell command asynchronously in headless mode.
-" Echo:      Echo the output of an asynchronous shell command to the command line.
+" AsyncBuf:  Run a shell command asynchronously and print output in a buffer.
+" AsyncCmd:  Echo the output of an asynchronous shell command to the command line.
 " StopJobs:  Stop all jobs. With a bang, jobs are killed (vim only).
 " Jobs:      List all running jobs. List finished jobs with BANG.
 " Make:      Run :make asynchronously.
@@ -29,8 +29,8 @@ let g:loaded_async = 1
 " For Make/Grep commands, with BANG will not jump to the first error/match, and
 " will not open the qfix window.
 
-command! -nargs=1 -bang System    call async#cmd(<q-args>, 'buffer', {'writelogs': <bang>0})
-command! -nargs=1 -bang Echo      call async#cmd(<q-args>, 'cmdline', {'writelogs': <bang>0})
+command! -nargs=1 -bang AsyncBuf  call async#cmd(<q-args>, 'buffer', {'writelogs': <bang>0})
+command! -nargs=1 -bang AsyncCmd  call async#cmd(<q-args>, 'cmdline', {'writelogs': <bang>0})
 command! -nargs=1 -bang Async     call async#cmd(<q-args>, 'headless', {'writelogs': <bang>0})
 
 command! -bang          StopJobs  call async#stop(0, <bang>0)
