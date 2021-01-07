@@ -775,7 +775,7 @@ endfunction
 ""
 fun! s:echo(list, ...)
   call filter(a:list, { k,v -> v != '' })
-  let txt = map(a:list, { k,v -> ':echo ' . string(v) })
+  let txt = map(a:list, { k,v -> ':echom ' . string(v) })
   if a:0
     let txt = [':echohl ' . a:1] + txt + [':echohl None']
   endif
