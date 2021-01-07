@@ -180,7 +180,7 @@ fun! async#list(finished) abort
   for j in jobs
     echo j
   endfor
-  let id = s:prompt_id()
+  let id = s:prompt_id(0)
   if id && confirm('Stop job with id '. id, "&Yes\n&No") == 1
     call async#stop(id, 0)
   endif
@@ -201,7 +201,7 @@ fun! s:list_finished_jobs() abort
     echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, cmd)
   endfor
   if s:py != ''
-    let id = s:prompt_id()
+    let id = s:prompt_id(1)
     if id
       call s:job_as_json(g:async_finished_jobs[id])
     endif
@@ -840,12 +840,13 @@ endfun
 
 " Prompt for a job id and check its validity. {{{1
 
-fun! s:prompt_id() abort
+fun! s:prompt_id(finished) abort
   let id = input('> ')
   if empty(id)
     return v:null
   endif
-  if !has_key(g:async_jobs, id)
+  let dict = a:finished ? g:async_finished_jobs : g:async_jobs
+  if !has_key(dict, id)
     redraw
     echo 'Invalid id:' id
     return v:null
