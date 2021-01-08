@@ -29,7 +29,7 @@ function! tasks#get(...) abort
     let local = deepcopy(tasks#project(reload))
     let gtasks = deepcopy(global.tasks)
     if !empty(local)
-        call filter(gtasks, "v:val.tag ==# 'always'")
+        call filter(gtasks, "v:val.always")
     endif
     let all = extend(global, local)
     call extend(all.tasks, gtasks, 'keep')
@@ -291,7 +291,7 @@ function! tasks#list(as_json) abort
         " --------------------------- [ task tag ] ----------------------------
         ""
         echohl String
-        let p = T.tag == 'always' || T.tag == 'default'
+        let p = T.tag == 'default'
                     \ ? T.local ? 'project' : 'global'
                     \ : T.tag
         echon p . repeat(' ', 16 - strlen(p))
@@ -404,7 +404,7 @@ function! tasks#choose(...) abort
         " --------------------------- [ task tag ] ----------------------------
         ""
         echohl String
-        let p = T.tag == 'always' || T.tag == 'default'
+        let p = T.tag == 'default'
                     \ ? T.local ? 'project' : 'global'
                     \ : T.tag
         echon p . repeat(' ', 16 - strlen(p))

@@ -5,7 +5,7 @@ syn clear dosiniComment
 syn match TaskComment  "^;.*$"
 syn region TaskName   start="^\s*\[" end="\]" contains=TaskOs nextgroup=TaskTag
 syn match TasksError '^[^;\[]\+\ze=\?.*'
-syn match TaskTag '\s\+@\w\+' contained
+syn match TaskTag '\s\+@\w\+' contained nextgroup=TaskTag
 
 let s:cmd  = '%(<command>(:(\w+,?)+)?(\/(\w+,?)+)?)'
 let s:keys = [

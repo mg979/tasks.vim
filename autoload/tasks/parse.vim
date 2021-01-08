@@ -72,15 +72,20 @@ function! tasks#parse#do(lines, local) abort
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
             " before creating a task, we check its tag, or we could overwrite
             " a valid task with one with the same name, if the tag is wrong,
-            " ignore the section's fields
+            " ignore the section's fields. We also check for the 'always' tag.
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+            let always = a:local || line =~ '\s\+@always\>'
+            if always
+                let line = substitute(line, '\s\+@always\>', '', 'g')
+            endif
             let tag = s:get_tag(line)
-            if s:wrong_tag(tag)
+            if !always || s:wrong_tag(tag)
                 let current = v:null
                 continue
             endif
             let current = l:NewSection(matchstr(line, s:tasksect))
             let current.tag = tag
+            let current.always = always
 
         elseif current isnot v:null
             for pat in values(current.patterns)
@@ -104,7 +109,7 @@ endfunction
 function! s:get_tag(line) abort
     if a:line =~ s:tagpat
         let tag = matchstr(a:line, s:tagpat)
-        if tag != 'always' && index(g:tasks['__known_tags__'], tag) < 0
+        if index(g:tasks['__known_tags__'], tag) < 0
             call add(g:tasks['__known_tags__'], tag)
         endif
         return tag
@@ -118,7 +123,7 @@ endfunction
 " If the task is project-local, task tag must match the current one.
 ""
 function! s:wrong_tag(tag) abort
-    return a:tag !=# 'always' && g:tasks['__tag__'] !=# a:tag
+    return g:tasks['__tag__'] !=# a:tag
 endfunction
 
 
@@ -181,7 +186,7 @@ endfunction
 let s:tagpat  = '\v]\s+\@\zs\w+'
 " let s:tagpat  = '\v]\s+\zs\(\@\w+\s*\)\+'
 
-let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
+let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)*\s*$'
 let s:envsect  = '^#env\(ironment\)\?$'
 let s:infosect = '^#info$'
 
