@@ -28,11 +28,13 @@ function! tasks#get(...) abort
     let global = deepcopy(tasks#global(reload))
     let local = deepcopy(tasks#project(reload))
     let gtasks = deepcopy(global.tasks)
+    let genv = copy(global.env)
     if !empty(local)
         call filter(gtasks, "v:val.always")
     endif
     let all = extend(global, local)
     call extend(all.tasks, gtasks, 'keep')
+    call extend(all.env, genv, 'keep')
     return all
 endfunction
 
