@@ -59,10 +59,10 @@ function! tasks#parse#do(lines, local) abort
     let current = v:null
 
     for line in a:lines
-        if match(line, '^;') == 0 || empty(line)
+        if empty(line) || match(line, '^;') == 0
             continue
 
-        elseif a:local && match(line, s:envsect) == 0
+        elseif match(line, s:envsect) == 0
             let current = l:NewSection('__env__')
 
         elseif a:local && match(line, s:infosect) == 0
@@ -131,9 +131,9 @@ endfunction
 " Constructor for project/global configuration.
 ""
 function! s:new_config(local) abort
-    let p = { 'tasks': {}, 'env': {} }
+    let p = { 'tasks': {}, 'env': {'ROOT': getcwd()} }
     if a:local
-        let p.env = { 'ROOT': getcwd(), 'PRJNAME': s:ut.basedir() }
+        call extend(p.env, {'PRJNAME': s:ut.basedir()})
         let p.info = { 'name': s:ut.basedir() }
     endif
     return p
@@ -182,7 +182,7 @@ let s:tagpat  = '\v]\s+\@\zs\w+'
 " let s:tagpat  = '\v]\s+\zs\(\@\w+\s*\)\+'
 
 let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)?$'
-let s:envsect  = '^#\(\<env\>\|\<environment\>\)$'
+let s:envsect  = '^#env\(ironment\)\?$'
 let s:infosect = '^#info$'
 
 let s:ut = tasks#util#init()
