@@ -248,6 +248,7 @@ let s:options = [
             \'focus', 'nojump', 'openqf',
             \'nosave', 'wall', 'keepouts',
             \'writelogs', 'termonquit',
+            \'qfixterm',
             \]
 
 let s:fields = {
