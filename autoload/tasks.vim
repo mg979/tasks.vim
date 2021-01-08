@@ -193,9 +193,7 @@ function! s:get_cwd(prj, task) abort
         if s:v.is_windows
             let cwd = substitute(cwd, '%\([A-Z_]\+\)%', '$\1', 'g')
         endif
-        if a:task.local
-            let cwd = s:expand_builtin_envvars(cwd, a:prj)
-        endif
+        let cwd = s:expand_builtin_envvars(cwd, a:prj, 0)
         let cwd = substitute(cwd, '\(\$[A-Z_]\+\)\>', '\=expand(submatch(1))', 'g')
         return cwd
     else
@@ -208,18 +206,17 @@ endfunction
 ""
 function! s:expand_task_cmd(task, prj)
     let cmd = async#expand(s:choose_command(a:task))
-    if a:task.local
-        let cmd = s:expand_builtin_envvars(cmd, a:prj)
-    endif
-    return cmd
+    return s:expand_builtin_envvars(cmd, a:prj, a:task.local)
 endfunction
 
 ""
 " Expand built-in variables $ROOT and $PRJNAME.
 ""
-function! s:expand_builtin_envvars(string, prj) abort
+function! s:expand_builtin_envvars(string, prj, expand_prjname) abort
     let s = substitute(a:string, '\$ROOT\>', '\=getcwd()', 'g')
-    let s = substitute(s, '\$PRJNAME\>', '\=a:prj.info.name', 'g')
+    if a:expand_prjname
+        let s = substitute(s, '\$PRJNAME\>', '\=a:prj.info.name', 'g')
+    endif
     return s
 endfunction
 
