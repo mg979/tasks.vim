@@ -69,7 +69,7 @@ endfun "}}}
 " Function: async#qfix
 " Run a job and populate quickfix with results.
 " @param args:  the args for the command
-" @param ...:   optional dicts as for async#cmd (useropts, jobopts).
+" @param ...:   optional dicts as for async#cmd (useropts, jobopts)
 " Returns: the id of the job
 ""=============================================================================
 fun! async#qfix(args, ...) abort
@@ -99,16 +99,16 @@ endfun "}}}
 
 ""=============================================================================
 " Function: async#compiler
-" @param args: the compiler name, followed by the optional command
-" @param opts: user options
-" @param ...:  job options (optional)
+" @param args: the compiler name, followed by any argument
+" @param ...:  optional dicts as for async#cmd (useropts, jobopts)
 " Returns: the id of the job
 ""=============================================================================
-fun! async#compiler(args, opts, ...) abort
+fun! async#compiler(args, ...) abort
   "{{{1
   let args = split(a:args)
-  let opts = extend({ 'compiler': args[0] }, a:opts)
-  return async#qfix(join(args[1:]), opts, a:0 ? a:1 : {})
+  let [user, opts] = !a:0 ? [{}, {}] : a:0 == 1 ? [a:1, {}] : [a:1, a:2]
+  let user = extend({ 'compiler': args[0] }, user)
+  return async#qfix(join(args[1:]), user, opts)
 endfun "}}}
 
 
