@@ -48,6 +48,10 @@ fun! async#cmd(cmd, mode, ...) abort
   " {{{1
   let useropts = s:user_opts(a:000, a:mode)
   let jobopts = a:0 > 1 ? a:2 : {}
+  " handle also compilers, if not done already
+  if useropts.compiler != '' && s:set_compiler(useropts) == v:false
+    return 0
+  endif
   let expanded = async#expand(a:cmd, get(useropts, 'args', ''))
   let cmd = s:make_cmd(expanded, a:mode, get(jobopts, 'env', {}))
   if empty(cmd)
@@ -88,6 +92,7 @@ fun! async#qfix(args, ...) abort
     echohl None
     return v:null
   endif
+  let user._has_set_compiler = user.compiler != ''
 
   exe (user.locl ? 'lclose' : 'cclose')
 
@@ -548,6 +553,9 @@ endfunction
 " Set compiler {{{1
 " Execute :compiler, store the options that it set, then restore the old ones.
 function! s:set_compiler(opts)
+  if get(a:opts, '_has_set_compiler', 0)
+    return v:true
+  endif
   " store old settings, and also if it's buffer-local or not
   let _prg  = [getbufvar(bufnr(''), '&makeprg'),     &l:makeprg != '']
   let _gprg = [getbufvar(bufnr(''), '&grepprg'),     &l:grepprg != '']
