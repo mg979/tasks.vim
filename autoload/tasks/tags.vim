@@ -78,15 +78,8 @@ function! tasks#tags#loop() abort
     try
         let tags = s:get_know_tags()
         let curr = index(tags, g:tasks['__tag__'])
-        let np   = len(tags)
-        if np > 1
-            if curr == np - 1
-                let curr = 0
-            else
-                let curr += 1
-            endif
-        endif
-        call tasks#tags#set(tags[curr])
+        let new  = (curr + 1) % len(tags)
+        call tasks#tags#set(tags[new])
     catch
     endtry
     call tasks#tags#current()
