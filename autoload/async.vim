@@ -82,9 +82,12 @@ fun! async#qfix(args, ...) abort
     let user.qfautocmd = user.grep ? 'grep' : 'make'
   endif
 
-  " store old settings
-  let     [user._prg, user._gprg, user._efm,    user._gfm] =
-        \ [&makeprg,  &grepprg,   &errorformat, &grepformat]
+  if user.compiler != '' && s:set_compiler(user) == v:false
+    echohl ErrorMsg
+    echo 'E666: compiler not supported:' a:opts.compiler
+    echohl None
+    return v:null
+  endif
 
   exe (user.locl ? 'lclose' : 'cclose')
 
@@ -105,23 +108,6 @@ fun! async#compiler(args, opts, ...) abort
   "{{{1
   let args = split(a:args)
   let opts = extend({ 'compiler': args[0] }, a:opts)
-
-  " apply compiler settings, but only to get values, then restore original
-  let     [opts._prg,   opts._gprg, opts._efm,      opts._gfm] =
-        \ [&l:makeprg,  &l:grepprg, &l:errorformat, &l:grepformat]
-  try
-    exe 'compiler' opts.compiler
-  catch /E666:/
-    echohl ErrorMsg
-    echo 'E666: compiler not supported:' opts.compiler
-    echohl None
-    return v:null
-  endtry
-  let     [opts.prg,    opts.gprg,  opts.efm,       opts.gfm] =
-        \ [&l:makeprg,  &l:grepprg, &l:errorformat, &l:grepformat]
-  let     [&l:makeprg,  &l:grepprg, &l:errorformat, &l:grepformat] =
-        \ [opts._prg,   opts._gprg, opts._efm,      opts._gfm]
-
   return async#qfix(join(args[1:]), opts, a:0 ? a:1 : {})
 endfun "}}}
 
@@ -291,6 +277,9 @@ fun! s:cb_quickfix(job) abort
   " {{{1
   let [job, status] = [a:job, a:job.status]
 
+  " cexpr only wants global errorformat, backup and clear local one
+  let [bvar, gvar] = [&l:errorformat, &errorformat]
+  setlocal errorformat=
   let &errorformat = job.grep ? job.gfm : job.efm
 
   exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
@@ -305,10 +294,12 @@ fun! s:cb_quickfix(job) abort
   endif
   exe 'silent doautocmd QuickFixCmdPost' job.qfautocmd
 
-  let &errorformat = job._efm
+  " restore errorformat values
+  let &l:errorformat = bvar
+  let &errorformat = gvar
 
   " empty list and status > 0 indicates some failure, maybe a wrong command
-  let failure = status && (job.locl ? empty(getloclist(1)) : empty(getqflist())) 
+  let failure = status && (job.locl ? empty(getloclist(1)) : empty(getqflist()))
 
   if job.grep
     if status > 1 || status == 1 && !empty(job.err)
@@ -552,6 +543,33 @@ function! s:user_opts(args, mode) abort
     update
   endif
   return useropts
+endfunction
+
+" Set compiler {{{1
+" Execute :compiler, store the options that it set, then restore the old ones.
+function! s:set_compiler(opts)
+  " store old settings, and also if it's buffer-local or not
+  let _prg  = [getbufvar(bufnr(''), '&makeprg'),     &l:makeprg != '']
+  let _gprg = [getbufvar(bufnr(''), '&grepprg'),     &l:grepprg != '']
+  let _efm  = [getbufvar(bufnr(''), '&errorformat'), &l:errorformat != '']
+  let _gfm  = [getbufvar(bufnr(''), '&grepformat'),  &l:grepformat != '']
+  " apply compiler settings, but only to get values, then restore original
+  " since we run :compiler without bang, it will use buffer-local settings
+  " when restoring, clear the setting unless previous was also buffer-local
+  try
+    exe 'compiler' a:opts.compiler
+  catch /E666:/
+    return v:false
+  endtry
+  let a:opts.prg  = getbufvar(bufnr(''), '&makeprg')
+  let a:opts.gprg = getbufvar(bufnr(''), '&grepprg')
+  let a:opts.efm  = getbufvar(bufnr(''), '&errorformat')
+  let a:opts.gfm  = getbufvar(bufnr(''), '&grepformat')
+  let &l:makeprg     = _prg[1]  ? _prg[0] : ''
+  let &l:grepprg     = _gprg[1] ? _gprg[0] : ''
+  let &l:errorformat = _efm[1]  ? _efm[0] : ''
+  let &l:grepformat  = _gfm[1]  ? _gfm[0] : ''
+  return v:true
 endfunction
 
 " Job command {{{1
