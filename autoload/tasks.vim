@@ -361,14 +361,16 @@ function! tasks#choose(...) abort
     if s:no_tasks(prj)
         return
     endif
-    if len(keys(prj.tasks)) == 1
-        let Keys = { 1: "\<F6>"}
-        let l:PnKey = { c -> '<F6>' . "\t"}
-    elseif len(keys(prj.tasks)) <= 8
+    let use_F = get(g:, 'tasks_mapping_use_Fn_keys', 6)
+    if use_F && len(keys(prj.tasks)) == 1
+        let f = substitute("\<F6>", '6$', use_F, '')
+        let Keys = { 1: f}
+        let l:PnKey = { c -> '<F'. use_F .'>' . "\t"}
+    elseif use_F && len(keys(prj.tasks)) <= 8
         let Keys = { 1: "\<F5>", 2: "\<F6>", 3: "\<F7>", 4: "\<F8>",
                     \5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
         let l:PnKey = { c -> '<F'.(c+4).'>' . "\t"}
-    elseif len(keys(prj.tasks)) <= 12
+    elseif use_F && len(keys(prj.tasks)) <= 12
         let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
                     \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
                     \9: "\<F9>", 10: "\<F10>", 11: "\<F11>", 12: "\<F12>"}
