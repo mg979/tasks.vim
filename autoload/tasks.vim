@@ -434,6 +434,11 @@ function! tasks#choose(...) abort
             echohl Delimiter  | echo 'Command: ' | echohl None
             echon s:expand_task_cmd(prj.tasks[dict[ch]], prj)
             let args = input('args: ')
+            if empty(args) && confirm('Run with no arguments?', "&Yes\n&No") != 1
+                redraw
+                echo 'Canceled'
+                return
+            endif
         else
             let args = ''
         endif
