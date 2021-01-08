@@ -502,7 +502,6 @@ endfun "}}}
 "  'focus'      focus on qf window           default: 0
 "  'nojump'     don't jump to first item     default: 0
 "  'openqf'     open qfix window             default: 0
-"  'repeat'     repeat every n seconds       default: 0
 "  'nosave'     don't :update before cmd     default: 0
 "  'wall'       do :wall before cmd          default: 0
 "  'keepouts'   keep out/err in memory       default: 0
@@ -524,7 +523,6 @@ fun! s:default_opts()
         \ 'focus': 0,
         \ 'nojump': 0,
         \ 'openqf': 0,
-        \ 'repeat': 0,
         \ 'nosave': 0,
         \ 'wall': 0,
         \ 'keepouts': 0,
