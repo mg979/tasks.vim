@@ -431,15 +431,25 @@ fun! async#expand(cmd, ...) abort
   endif
   " from https://github.com/edkolev/vim-amake and
   " from tpope's vim-dispatch https://github.com/tpope/vim-dispatch
-  let flags = '<\=\%(:[p8~.htre]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)*'
+  let flags = '<\=\%(:[p8~.htreW]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)*'
   let expandable = '\\*\%(<\w\+>\|%\|#\d*\)' . flags
-  let cmd = substitute(cmd, expandable, '\=expand(submatch(0))', 'g')
+  let cmd = substitute(cmd, expandable, '\=s:expand(submatch(0))', 'g')
   if s:is_windows
     let cmd = substitute(cmd, '\$\([A-Z_]\+\)\>', '%\1%', 'g')
   endif
   return substitute(cmd, '^\s*\|\s*$', '', 'g')
-endfun "}}}
+endfun
 
+""
+" Vim expansion, with the additional :W modifier that converts a WSL path.
+""
+fun! s:expand(match)
+  if a:match == '%:W'
+    let path = substitute(expand('%'), '^/mnt/\(\l\)/', '\1:\\', '')
+    return tr(path, '/', '\')
+  endif
+  return expand(a:match)
+endfun "}}}
 
 ""=============================================================================
 " Function: async#remove_job
