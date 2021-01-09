@@ -182,7 +182,8 @@ function! s:choose_command(task) abort
         let a:task.fields[best[0]] = best[1]
         return best[1]
     endif
-    return &makeprg
+    return index(get(a:task.fields, 'options', []), 'grep') >= 0
+                \ ? &grepprg : &makeprg
 endfunction
 
 ""
