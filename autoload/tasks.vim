@@ -393,12 +393,18 @@ function! tasks#choose(...) abort
     echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
     for t in sort(keys(prj.tasks))
         let T = prj.tasks[t]
+        if has_key(T.fields, 'mapping')
+            let Keys[i] = T.fields.mapping
+            let map = T.fields.mapping ."\t"
+        else
+            let map = l:PnKey(i)
+        endif
         let dict[Keys[i]] = t
         ""
         " ---------------------------- [ mapping ] ----------------------------
         ""
         echohl Special
-        echo l:PnKey(i)
+        echo map
         ""
         " --------------------------- [ task name ] ---------------------------
         ""

@@ -12,7 +12,7 @@ let s:keys = [
             \'cwd', 'output', 'compiler',
             \'success', 'fail', 'syntax',
             \'errorformat', 'grepformat',
-            \'options', 'args',
+            \'options', 'args', 'mapping',
             \'outfile', 'errfile',
             \'name', 'description',
             \]
