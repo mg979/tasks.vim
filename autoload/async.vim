@@ -314,6 +314,8 @@ fun! s:cb_quickfix(job) abort
       call s:echo([job.cmd] + job.err, 'WarningMsg')
     elseif status == 1
       echo 'No results'
+    elseif job.openqf
+      call s:open_qfix(job)
     else
       echo 'Found' (len(job.out) + len(job.err)) 'matches'
     endif
@@ -326,17 +328,23 @@ fun! s:cb_quickfix(job) abort
           \ + job.out + job.err, 'WarningMsg')
 
   elseif job.openqf
-    silent redraw!
-    exe (job.locl ? 'lopen' : 'botright copen')
-    if !job.focus
-      wincmd p
-    endif
+    call s:open_qfix(job)
 
   elseif job.nojump
     call s:echo(['Exit status: '. status, 'Command: '. job.cmd], 'WarningMsg')
   endif
-endfun "}}}
+endfun
 
+""
+" Open quickfix or location list when openqf option is set.
+""
+fun! s:open_qfix(job)
+  silent redraw!
+  exe (a:job.locl ? 'lopen' : 'botright copen')
+  if !a:job.focus
+    wincmd p
+  endif
+endfun "}}}
 
 ""=============================================================================
 " Function: s:cb_cmdline
