@@ -11,7 +11,8 @@ let s:cmd  = '%(<command>(:(\w+,?)+)?(\/(\w+,?)+)?)'
 let s:keys = [
             \'cwd', 'output', 'compiler',
             \'success', 'fail', 'syntax',
-            \'errorformat', 'options',
+            \'errorformat', 'grepformat',
+            \'options', 'args',
             \'outfile', 'errfile',
             \'name', 'description',
             \]

@@ -105,7 +105,6 @@ function! tasks#run(args) abort
     let tasks = prj.tasks
     let a = split(a:args)
     let name = a[0]
-    let args = len(a) > 1 ? join(a[1:]) : ''
 
     if !has_key(tasks, name)
         echon s:ut.badge() 'not a valid task'
@@ -114,6 +113,7 @@ function! tasks#run(args) abort
 
     let task = tasks[name]
     let cmd = s:choose_command(task)
+    let args = len(a) > 1 ? join(a[1:]) : get(task.fields, 'args', '')
 
     if cmd =~ '^VIM: '
         call s:execute_vim_command(cmd, args)
@@ -208,7 +208,9 @@ endfunction
 ""
 function! s:expand_task_cmd(task, prj)
     let cmd = async#expand(s:choose_command(a:task))
-    return s:expand_builtin_envvars(cmd, a:prj, a:task.local)
+    let args = get(a:task.fields, 'args', '')
+    let args = empty(args) ? '' : ' ' . async#expand(args)
+    return s:expand_builtin_envvars(cmd . args, a:prj, a:task.local)
 endfunction
 
 ""

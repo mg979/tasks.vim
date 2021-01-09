@@ -237,8 +237,10 @@ let s:patterns_task = {
             \ 'success':      '^success\ze=',
             \ 'fail':         '^fail\ze=',
             \ 'syntax':       '^syntax\ze=',
+            \ 'args':         '^args\ze=',
             \ 'options':      '^options\ze=',
             \ 'errorformat':  '^errorformat\ze=',
+            \ 'grepformat':   '^grepformat\ze=',
             \ 'outfile':      '^outfile\ze=',
             \ 'errfile':      '^errfile\ze=',
             \}
@@ -259,8 +261,10 @@ let s:fields = {
             \ 'success':     { k,v -> v:true },
             \ 'fail':        { k,v -> v:true },
             \ 'syntax':      { k,v -> v =~ '\w\+\(\.\w\+\)\?' },
+            \ 'args':        { k,v -> v:true },
             \ 'options':     { k,v -> v:true },
             \ 'errorformat': { k,v -> v:true },
+            \ 'grepformat':  { k,v -> v:true },
             \ 'outfile':     { k,v -> v =~ '\f\+' },
             \ 'errfile':     { k,v -> v =~ '\f\+' },
             \}
