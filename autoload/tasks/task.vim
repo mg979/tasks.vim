@@ -161,7 +161,7 @@ function! s:validate_output(key, val) abort
     elseif a:val =~ '^external'
         return a:val =~ '^external\(:[[:alnum:]_-]\+\)\?$'
     else
-        return index(['quickfix', 'cmdline', 'headless'], a:val) >= 0
+        return index(['quickfix', 'cmdline', 'headless', 'vim'], a:val) >= 0
     endif
 endfunction
 

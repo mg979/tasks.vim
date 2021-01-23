@@ -114,13 +114,13 @@ function! tasks#run(args) abort
     let task = tasks[name]
     let cmd = s:choose_command(task)
     let args = len(a) > 1 ? join(a[1:]) : get(task.fields, 'args', '')
+    let mode = s:get_cmd_mode(task)
 
-    if cmd =~ '^VIM: '
+    if mode ==# 'vim'
         call s:execute_vim_command(cmd, args)
         return
     endif
 
-    let mode = s:get_cmd_mode(task)
     let opts = extend(s:get_pos(mode),
                 \     s:get_opts(get(task.fields, 'options', [])))
     let useropts = extend({
@@ -226,7 +226,7 @@ function! s:expand_builtin_envvars(string, prj, expand_prjname) abort
 endfunction
 
 ""
-" Mode is either 'quickfix', 'buffer', 'terminal', 'external' or 'cmdline'.
+" Either 'quickfix', 'buffer', 'terminal', 'external', 'cmdline' or 'vim'.
 ""
 function! s:get_cmd_mode(task) abort
     let mode = filter(copy(a:task.fields), { k,v -> k =~ '^output' })
