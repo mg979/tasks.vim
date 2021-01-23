@@ -186,6 +186,8 @@ endfunction
 " Patterns and script variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+let g:projects = projects#update()
+
 let s:prjpat   = '^\[\zs\w\+\ze\]'
 
 let s:is_windows = has('win32') || has('win64') || has('win16') || has('win95')
