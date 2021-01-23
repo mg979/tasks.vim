@@ -79,7 +79,7 @@ function! tasks#parse#do(lines, local) abort
                 let line = substitute(line, '\s\+@always\>', '', 'g')
             endif
             let tag = s:get_tag(line)
-            if !always || s:wrong_tag(tag)
+            if s:wrong_tag(tag)
                 let current = v:null
                 continue
             endif
