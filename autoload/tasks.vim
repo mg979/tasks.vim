@@ -126,7 +126,8 @@ function! tasks#run(args) abort
     let useropts = extend({
                 \ 'prg': cmd,
                 \ 'gprg': cmd,
-                \ 'efm': get(task.fields, 'efm', &errorformat),
+                \ 'efm': get(task.fields, 'errorformat', getbufvar(bufnr(''), '&errorformat')),
+                \ 'gfm': get(task.fields, 'grepformat', getbufvar(bufnr(''), '&grepformat')),
                 \ 'compiler': get(task.fields, 'compiler', ''),
                 \ 'ft': get(task.fields, 'syntax', ''),
                 \}, opts)
@@ -183,7 +184,8 @@ function! s:choose_command(task) abort
         return best[1]
     endif
     return index(get(a:task.fields, 'options', []), 'grep') >= 0
-                \ ? &grepprg : &makeprg
+                \ ? getbufvar(bufnr(''), '&grepprg')
+                \ : getbufvar(bufnr(''), '&makeprg')
 endfunction
 
 ""
