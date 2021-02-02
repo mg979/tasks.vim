@@ -124,10 +124,10 @@ function! tasks#run(args) abort
     let opts = extend(s:get_pos(mode),
                 \     s:get_opts(get(task.fields, 'options', [])))
     let useropts = extend({
-                \ 'prg': cmd,
-                \ 'gprg': cmd,
-                \ 'efm': get(task.fields, 'errorformat', getbufvar(bufnr(''), '&errorformat')),
-                \ 'gfm': get(task.fields, 'grepformat', getbufvar(bufnr(''), '&grepformat')),
+                \ 'makeprg': cmd,
+                \ 'grepprg': cmd,
+                \ 'errorformat': get(task.fields, 'errorformat', s:bvar('&errorformat')),
+                \ 'grepformat': get(task.fields, 'grepformat', s:bvar('&grepformat')),
                 \ 'compiler': get(task.fields, 'compiler', ''),
                 \ 'ft': get(task.fields, 'syntax', ''),
                 \}, opts)
@@ -184,8 +184,8 @@ function! s:choose_command(task) abort
         return best[1]
     endif
     return index(get(a:task.fields, 'options', []), 'grep') >= 0
-                \ ? getbufvar(bufnr(''), '&grepprg')
-                \ : getbufvar(bufnr(''), '&makeprg')
+                \ ? s:bvar('&grepprg')
+                \ : s:bvar('&makeprg')
 endfunction
 
 ""
@@ -551,9 +551,9 @@ endfunction
 " Script variables
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let s:ut = tasks#util#init()
-let s:v  = s:ut.Vars
-
+let s:ut   = tasks#util#init()
+let s:v    = s:ut.Vars
+let s:bvar = { v -> getbufvar(bufnr(''), v) }
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
