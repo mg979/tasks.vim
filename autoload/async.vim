@@ -533,10 +533,10 @@ endfun "}}}
 "  'termonquit' when quitting vim            default: 0
 fun! s:default_opts()
   return {
-        \ 'prg': &makeprg,
-        \ 'gprg': &grepprg,
-        \ 'efm': &errorformat,
-        \ 'gfm': &grepformat,
+        \ 'prg': getbufvar(bufnr(''), '&makeprg'),
+        \ 'gprg': getbufvar(bufnr(''), '&grepprg'),
+        \ 'efm': getbufvar(bufnr(''), '&errorformat'),
+        \ 'gfm': getbufvar(bufnr(''), '&grepformat'),
         \ 'qfautocmd': '',
         \ 'qfixterm': 0,
         \ 'compiler': '',
