@@ -97,7 +97,7 @@ fun! async#qfix(args, ...) abort
   exe (user.locl ? 'lclose' : 'cclose')
 
   let opts = extend({}, a:0 > 1 ? a:2 : {})
-  let user.cmd = user.grep ? user.gprg : user.prg
+  let user.cmd = user.grep ? user.grepprg : user.makeprg
   return async#cmd(user.cmd, 'quickfix', user, opts)
 endfun "}}}
 
@@ -285,7 +285,7 @@ fun! s:cb_quickfix(job) abort
   " cexpr only wants global errorformat, backup and clear local one
   let [bvar, gvar] = [&l:errorformat, &errorformat]
   setlocal errorformat=
-  let &errorformat = job.grep ? job.gfm : job.efm
+  let &errorformat = job.grep ? job.grepformat : job.errorformat
 
   exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
   let cxpr =  job.locl ? 'l' : 'c'
@@ -510,33 +510,33 @@ endfun "}}}
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Default user options {{{1
-"  'prg'        makeprg                      default: &makeprg
-"  'gprg'       grepprg                      default: &grepprg
-"  'efm'        errorformat                  default: &errorformat
-"  'gfm'        grepformat                   default: &grepformat
-"  'compiler'   run :compiler x              default: ''
-"  'qfautocmd'  quickfix autocommands        default: ''
-"  'qfixterm'   fill quickfix for t-mode     default: 0
-"  'env'        environmental variables      default: {}
-"  'grep'       use grepprg, not makeprg     default: 0
-"  'locl'       use loclist, not qfix        default: 0
-"  'focus'      focus on qf window           default: 0
-"  'nojump'     don't jump to first item     default: 0
-"  'openqf'     open qfix window             default: 0
-"  'append'     append to qfix, don't add    default: 0
-"  'nosave'     don't :update before cmd     default: 0
-"  'wall'       do :wall before cmd          default: 0
-"  'keepouts'   keep out/err in memory       default: 0
-"  'writelogs'  write out/err to logfiles    default: 0
-"  'outfile'    file where to write out      default: ''
-"  'errfile'    file where to write err      default: ''
-"  'termonquit' when quitting vim            default: 0
+"  'makeprg'     makeprg                      default: &makeprg (local preferred)
+"  'grepprg'     grepprg                      default: &grepprg (local preferred)
+"  'errorformat' errorformat                  default: &errorformat (local preferred)
+"  'grepformat'  grepformat                   default: &grepformat (local preferred)
+"  'compiler'    run :compiler x              default: ''
+"  'qfautocmd'   quickfix autocommands        default: ''
+"  'qfixterm'    fill quickfix for t-mode     default: 0
+"  'env'         environmental variables      default: {}
+"  'grep'        use grepprg, not makeprg     default: 0
+"  'locl'        use loclist, not qfix        default: 0
+"  'focus'       focus on qf window           default: 0
+"  'nojump'      don't jump to first item     default: 0
+"  'openqf'      open qfix window             default: 0
+"  'append'      append to qfix, don't add    default: 0
+"  'nosave'      don't :update before cmd     default: 0
+"  'wall'        do :wall before cmd          default: 0
+"  'keepouts'    keep out/err in memory       default: 0
+"  'writelogs'   write out/err to logfiles    default: 0
+"  'outfile'     file where to write out      default: ''
+"  'errfile'     file where to write err      default: ''
+"  'termonquit'  when quitting vim            default: 0
 fun! s:default_opts()
   return {
-        \ 'prg': getbufvar(bufnr(''), '&makeprg'),
-        \ 'gprg': getbufvar(bufnr(''), '&grepprg'),
-        \ 'efm': getbufvar(bufnr(''), '&errorformat'),
-        \ 'gfm': getbufvar(bufnr(''), '&grepformat'),
+        \ 'makeprg': s:bufvar('&makeprg'),
+        \ 'grepprg': s:bufvar('&grepprg'),
+        \ 'errorformat': s:bufvar('&errorformat'),
+        \ 'grepformat': s:bufvar('&grepformat'),
         \ 'qfautocmd': '',
         \ 'qfixterm': 0,
         \ 'compiler': '',
@@ -584,10 +584,10 @@ function! s:set_compiler(opts)
     return v:true
   endif
   " store old settings, and also if it's buffer-local or not
-  let _prg  = [getbufvar(bufnr(''), '&makeprg'),     &l:makeprg != '']
-  let _gprg = [getbufvar(bufnr(''), '&grepprg'),     &l:grepprg != '']
-  let _efm  = [getbufvar(bufnr(''), '&errorformat'), &l:errorformat != '']
-  let _gfm  = [getbufvar(bufnr(''), '&grepformat'),  &l:grepformat != '']
+  let _prg  = [s:bufvar('&makeprg'),     &l:makeprg != '']
+  let _gprg = [s:bufvar('&grepprg'),     &l:grepprg != '']
+  let _efm  = [s:bufvar('&errorformat'), &l:errorformat != '']
+  let _gfm  = [s:bufvar('&grepformat'),  &l:grepformat != '']
   " apply compiler settings, but only to get values, then restore original
   " since we run :compiler without bang, it will use buffer-local settings
   " when restoring, clear the setting unless previous was also buffer-local
@@ -596,14 +596,14 @@ function! s:set_compiler(opts)
   catch /E666:/
     return v:false
   endtry
-  let a:opts.prg  = getbufvar(bufnr(''), '&makeprg')
-  let a:opts.gprg = getbufvar(bufnr(''), '&grepprg')
-  let a:opts.efm  = getbufvar(bufnr(''), '&errorformat')
-  let a:opts.gfm  = getbufvar(bufnr(''), '&grepformat')
-  let &l:makeprg     = _prg[1]  ? _prg[0] : ''
-  let &l:grepprg     = _gprg[1] ? _gprg[0] : ''
-  let &l:errorformat = _efm[1]  ? _efm[0] : ''
-  let &l:grepformat  = _gfm[1]  ? _gfm[0] : ''
+  let a:opts.makeprg     = s:bufvar('&makeprg')
+  let a:opts.grepprg     = s:bufvar('&grepprg')
+  let a:opts.errorformat = s:bufvar('&errorformat')
+  let a:opts.grepformat  = s:bufvar('&grepformat')
+  let &l:makeprg         = _prg[1] ? _prg[0] : ''
+  let &l:grepprg         = _gprg[1] ? _gprg[0] : ''
+  let &l:errorformat     = _efm[1] ? _efm[0] : ''
+  let &l:grepformat      = _gfm[1] ? _gfm[0] : ''
   return v:true
 endfunction
 
@@ -939,6 +939,7 @@ let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
 let s:py         = executable('python') ? 'python' : executable('python3') ? 'python3' : ''
 let s:cmdscripts = []
+let s:bufvar     = { v -> getbufvar(bufnr(''), v) }
 
 augroup async-stopjobs
   au!
