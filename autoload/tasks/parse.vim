@@ -136,7 +136,7 @@ endfunction
 " Constructor for project/global configuration.
 ""
 function! s:new_config(local) abort
-    let p = { 'tasks': {}, 'env': {'ROOT': getcwd()} }
+    let p = { 'tasks': {}, 'env': {'ROOT': expand(getcwd())} }
     if a:local
         call extend(p.env, {'PRJNAME': s:ut.basedir()})
         let p.info = { 'name': s:ut.basedir() }

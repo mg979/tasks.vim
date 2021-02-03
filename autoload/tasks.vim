@@ -202,7 +202,7 @@ function! s:get_cwd(prj, task) abort
         let cwd = substitute(cwd, '\(\$[A-Z_]\+\)\>', '\=expand(submatch(1))', 'g')
         return cwd
     else
-        return getcwd()
+        return expand(getcwd())
     endif
 endfunction
 
@@ -220,7 +220,7 @@ endfunction
 " Expand built-in variables $ROOT and $PRJNAME.
 ""
 function! s:expand_builtin_envvars(string, prj, expand_prjname) abort
-    let s = substitute(a:string, '\$ROOT\>', '\=getcwd()', 'g')
+    let s = substitute(a:string, '\$ROOT\>', '\=expand(getcwd())', 'g')
     if a:expand_prjname
         let s = substitute(s, '\$PRJNAME\>', '\=a:prj.info.name', 'g')
     endif

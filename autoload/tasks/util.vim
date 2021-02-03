@@ -31,7 +31,7 @@ let s:v.pospat     = '<top>|<bottom>|<left>|<right>|<vertical>'
 " Basename of the working directory.
 ""
 function! s:Util.basedir() abort
-    return fnamemodify(getcwd(), ':t')
+    return fnamemodify(expand(getcwd()), ':t')
 endfunction
 
 
