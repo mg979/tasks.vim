@@ -221,7 +221,7 @@ let s:v  = s:ut.Vars
 let s:type = { n -> n == '__env__' ? 'env' : n == '__info__' ? 'info' : 'task' }
 
 let s:patterns_env = {
-            \ 'envvar': '\C^[A-Z_]\+\ze=',
+            \ 'envvar': '\C^@\?[A-Z_]\+:\?\ze=',
             \}
 
 let s:patterns_info = {

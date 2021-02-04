@@ -37,6 +37,7 @@ function! tasks#get(...) abort
         call extend(all.tasks, gtasks, 'keep')
         call extend(all.env, genv, 'keep')
     endif
+    let all.env = s:expand_env(all.env)
     return all
 endfunction
 
@@ -153,6 +154,35 @@ function! s:execute_vim_command(cmd, args)
         execute substitute(a:cmd, '^VIM: ', '', '')
     endif
 endfunction
+
+""
+" Expand special environmental variables. The two patterns may be combined.
+"
+" pattern VAR:= means vim filename modifiers are expanded, the variable is then
+"               assigned in the environment.
+"
+" pattern @VAR= means the content will be substituted in all other
+"               environmental variables that contain it. The variable is NOT
+"               assigned in the environment.
+""
+fun! s:expand_env(env)
+    for k in keys(a:env)
+        if k =~ ':$'
+            let nk = k[:-2]
+            let nv = async#expand(a:env[k])
+            unlet a:env[k]
+            let a:env[nk] = nv
+        endif
+    endfor
+    for k in keys(a:env)
+        if k =~ '^@'
+            let v = a:env[k]
+            call map(a:env, 'substitute(v:val, "\\V" . k, v, "g")')
+            unlet a:env[k]
+        endif
+    endfor
+    return a:env
+endfun
 
 ""
 " Choose the most appropriate command for the task.
