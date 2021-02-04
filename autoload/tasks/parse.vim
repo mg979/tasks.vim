@@ -145,17 +145,6 @@ function! s:new_config(local) abort
 endfunction
 
 ""
-" Strip the conditions modifiers from the task name.
-""
-function! s:task_name(taskname) abort
-    let tn = a:taskname
-    if match(tn, '/') > 0
-        let tn = split(tn, '/')[0]
-    endif
-    return tn
-endfunction
-
-""
 " Update the PRJNAME env variable to match the project's name.
 ""
 function! s:update_prjname(prj, local) abort
@@ -170,7 +159,7 @@ endfunction
 function! s:rename_tasks(prj) abort
     let renamed_tasks = {}
     for t in keys(a:prj.tasks)
-        let rt = s:task_name(t)
+        let rt = split(t, '/')[0]
         if t != rt
             let renamed_tasks[rt] = remove(a:prj.tasks, t)
         endif
