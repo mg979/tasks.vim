@@ -19,11 +19,15 @@ let s:keys = [
 exe printf("syn match TasksField '\\v\\C^%s|<%s>|<[A-Z_]+>\\ze\\=.+'", s:cmd, join(s:keys, '>|<'))
 
 syn match TasksSect   '^#\(\<env\>\|\<environment\>\|\<info\>\)'
-syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue
-syn match TasksEnvVar '\%(\%(Windows\|\<win\d\d\>\).\{-}\)\@<=%[A-Z_]\+%' containedin=dosiniValue
-syn match TaskVimCmd  '=\zsVIM: ' containedin=dosiniValue nextgroup=TaskVimEx
-syn match TaskVimEx   '.*' contained
+syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue nextgroup=TaskString
+syn match TaskString  '.*' contained contains=TasksEnvVar
 syn match TaskOs      '/\zs.*\ze]' contained
+
+if has('win32')
+    syn match TasksEnvVar '%[A-Z_]\+%' containedin=dosiniValue nextgroup=TaskString
+else
+    syn match TasksEnvVar '\%(\%(Windows\|\<win\d\d\>\).\{-}\)\@<=%[A-Z_]\+%' containedin=dosiniValue nextgroup=TaskString
+endif
 
 hi default link TasksSect   Constant
 hi default link TasksEnvVar Identifier
@@ -32,6 +36,5 @@ hi default link TasksField  dosiniLabel
 hi default link TaskName    Special
 hi default link TaskTag     Constant
 hi default link TaskComment Comment
-hi default link TaskVimCmd  Special
-hi default link TaskVimEx   String
+hi default link TaskString  String
 hi default link TaskOs      Identifier
