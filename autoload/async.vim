@@ -666,7 +666,7 @@ fun! s:tempscript(cmd, env, wsl) abort
       let lines += ['set ' . var . '=' . a:env[var] . "\r"]
     endfor
     let lines += [a:cmd]
-    let lines += ['@echo ON']
+    let lines += ['exit %errorlevel%']
   endif
   let fname = tempname() . (a:wsl ? '.sh' : '.bat')
   call add(s:cmdscripts, fname)
