@@ -99,7 +99,7 @@ function! tasks#parse#do(lines, local) abort
     endfor
     call filter(p.tasks, { k,v -> v.validate(p,k)})
     call s:update_prjname(p, a:local)
-    return s:rename_tasks(p)
+    return s:filter_tasks_by_os(p)
 endfunction
 
 
@@ -154,9 +154,24 @@ function! s:update_prjname(prj, local) abort
 endfunction
 
 ""
-" Remove modifiers from task names.
+" Remove modifiers from task names, selecting the most appropriate for the
+" current OS.
 ""
-function! s:rename_tasks(prj) abort
+function! s:filter_tasks_by_os(prj) abort
+    if s:v.is_wsl
+        " if using WSL and the same task is also defined for Linux, prefer WSL
+        " version.
+        let ks = keys(a:prj.tasks)
+        for t in ks
+            if match(t, '\c/wsl') >= 0
+                let name = split(t, '/')[0]
+                let linux = match(ks, name . '/\clinux')
+                if linux >= 0
+                    call remove(a:prj.tasks, ks[linux])
+                endif
+            endif
+        endfor
+    endif
     let renamed_tasks = {}
     for t in keys(a:prj.tasks)
         let rt = split(t, '/')[0]
