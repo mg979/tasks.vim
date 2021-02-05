@@ -306,10 +306,7 @@ fun! s:cb_quickfix(job) abort
   " empty list and status > 0 indicates some failure, maybe a wrong command
   let failure = status && (job.locl ? empty(getloclist(1)) : empty(getqflist()))
 
-  if job.qfixterm
-    return
-
-  elseif job.grep
+  if job.grep
     if status > 1 || status == 1 && !empty(job.err)
       call s:echo([job.cmd] + job.err, 'WarningMsg')
     elseif status == 1
@@ -393,9 +390,6 @@ fun! s:cb_terminal(job) abort
       let hl = a:job.status ? '%#ErrorMsg#' : '%#DiffAdd#'
       call setwinvar(win, '&statusline', hl . 'Exit status: ' . a:job.status)
     endif
-  endif
-  if a:job.qfixterm
-    call s:cb_quickfix(a:job)
   endif
 endfun "}}}
 
@@ -516,7 +510,6 @@ endfun "}}}
 "  'grepformat'  grepformat                   default: &grepformat (local preferred)
 "  'compiler'    run :compiler x              default: ''
 "  'qfautocmd'   quickfix autocommands        default: ''
-"  'qfixterm'    fill quickfix for t-mode     default: 0
 "  'env'         environmental variables      default: {}
 "  'grep'        use grepprg, not makeprg     default: 0
 "  'locl'        use loclist, not qfix        default: 0
@@ -538,7 +531,6 @@ fun! s:default_opts()
         \ 'errorformat': s:bufvar('&errorformat'),
         \ 'grepformat': s:bufvar('&grepformat'),
         \ 'qfautocmd': '',
-        \ 'qfixterm': 0,
         \ 'compiler': '',
         \ 'append': 0,
         \ 'locl': 0,
