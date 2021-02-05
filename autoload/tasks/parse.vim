@@ -85,7 +85,9 @@ function! tasks#parse#do(lines, local) abort
             endif
             let current = l:NewSection(matchstr(line, s:tasksect))
             let current.tag = tag
-            let current.always = always
+            if !a:local
+                let current.always = always
+            endif
 
         elseif current isnot v:null
             for pat in values(current.patterns)
