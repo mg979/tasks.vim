@@ -226,7 +226,8 @@ let s:patterns_env = {
 
 let s:patterns_info = {
             \ 'name': '^name\ze=',
-            \ 'description': '^description\ze='
+            \ 'description': '^description\ze=',
+            \ 'filerotate': '^filerotate\ze=',
             \}
 
 let s:patterns_task = {
