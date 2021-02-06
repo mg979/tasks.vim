@@ -22,6 +22,7 @@
 " @return: the merged dictionary with tasks
 ""
 function! tasks#get(...) abort
+    "{{{1
     " known tags will be regenerated
     let g:tasks['__known_tags__'] = ['default']
     let reload = a:0 && a:1
@@ -39,13 +40,11 @@ function! tasks#get(...) abort
     endif
     let all.env = s:expand_env(all.env)
     return all
-endfunction
+endfunction "}}}
 
 
-""
-" Get the project-local tasks dictionary.
-""
 function! tasks#project(reload) abort
+    " Get the project-local tasks dictionary. {{{1
     let prj = s:ut.basedir()
     if !a:reload && has_key(g:tasks, prj)
         return g:tasks[prj]
@@ -56,13 +55,11 @@ function! tasks#project(reload) abort
     endif
     let g:tasks[prj] = tasks#parse#do(readfile(f), 1)
     return g:tasks[prj]
-endfunction
+endfunction "}}}
 
 
-""
-" Get the global tasks dictionary.
-""
 function! tasks#global(reload) abort
+    " Get the global tasks dictionary. {{{1
     if !a:reload && has_key(g:tasks, 'global')
         return g:tasks.global
     endif
@@ -72,7 +69,7 @@ function! tasks#global(reload) abort
     endif
     let g:tasks.global = tasks#parse#do(readfile(f), 0)
     return g:tasks.global
-endfunction
+endfunction "}}}
 
 
 " TODO: :Project, :Compile commands
@@ -87,10 +84,8 @@ endfunction
 " Run task
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-""
-" Main command to run a task. Will call async#cmd.
-""
 function! tasks#run(args) abort
+    " Main command to run a task. Will call async#cmd. {{{1
     redraw
     let prj = tasks#get()
     if empty(prj)
@@ -142,30 +137,30 @@ function! tasks#run(args) abort
     else
         call async#cmd(cmd . ' ' . args, mode, useropts, jobopts)
     endif
-endfunction
+endfunction "}}}
 
-""
-" It's a vim command, execute as-is.
-""
+
 function! s:execute_vim_command(cmd, args)
+    " It's a vim command, execute as-is. {{{1
     if a:args != ''
         execute substitute(a:cmd . ' ' . a:args, '^VIM: ', '', '')
     else
         execute substitute(a:cmd, '^VIM: ', '', '')
     endif
-endfunction
+endfunction "}}}
 
-""
-" Expand special environmental variables. The two patterns may be combined.
-"
-" pattern VAR:= means vim filename modifiers are expanded, the variable is then
-"               assigned in the environment.
-"
-" pattern @VAR= means the content will be substituted in all other
-"               environmental variables that contain it. The variable is NOT
-"               assigned in the environment.
-""
-fun! s:expand_env(env)
+
+function! s:expand_env(env)
+    " Expand special environmental variables. {{{1
+    "
+    " The two patterns may be combined:
+    "
+    " pattern VAR:= means vim filename modifiers are expanded, the variable is then
+    "               assigned in the environment.
+    "
+    " pattern @VAR= means the content will be substituted in all other
+    "               environmental variables that contain it. The variable is NOT
+    "               assigned in the environment.
     for k in keys(a:env)
         if k =~ ':$'
             let nk = k[:-2]
@@ -182,12 +177,11 @@ fun! s:expand_env(env)
         endif
     endfor
     return a:env
-endfun
+endfunction "}}}
 
-""
-" Choose the most appropriate command for the task.
-""
+
 function! s:choose_command(task) abort
+    " Choose the most appropriate command for the task. {{{1
     let [cmdpat, cmppat, ft] = ['^command', '^compiler', '\<' . s:ut.ft() . '\>']
 
     " try 'compiler' first, then 'command'
@@ -216,13 +210,12 @@ function! s:choose_command(task) abort
     return index(get(a:task.fields, 'options', []), 'grep') >= 0
                 \ ? s:bvar('&grepprg')
                 \ : s:bvar('&makeprg')
-endfunction
+endfunction "}}}
 
-""
-" If the task defines a cwd, it should be expanded.
-" Expand also $ROOT and $PRJNAME because they aren't set in vim environment.
-""
+
 function! s:get_cwd(prj, task) abort
+    " If the task defines a cwd, it should be expanded. {{{1
+    " Expand also $ROOT and $PRJNAME because they aren't set in vim environment.
     if has_key(a:task.fields, 'cwd')
         let cwd = async#expand(a:task.fields.cwd)
         if s:v.is_windows
@@ -234,77 +227,69 @@ function! s:get_cwd(prj, task) abort
     else
         return expand(getcwd())
     endif
-endfunction
+endfunction "}}}
 
-""
-" Returns task command with expanded env variables and vim placeholders.
-""
+
 function! s:expand_task_cmd(task, prj)
+    " Returns task command with expanded env variables and vim placeholders. {{{1
     let cmd = async#expand(s:choose_command(a:task))
     let args = get(a:task.fields, 'args', '')
     let args = empty(args) ? '' : ' ' . async#expand(args)
     return s:expand_builtin_envvars(cmd . args, a:prj, a:task.local)
-endfunction
+endfunction "}}}
 
-""
-" Expand built-in variables $ROOT and $PRJNAME.
-""
+
 function! s:expand_builtin_envvars(string, prj, expand_prjname) abort
+    " Expand built-in variables $ROOT and $PRJNAME. {{{1
     let s = substitute(a:string, '\$ROOT\>', '\=expand(getcwd())', 'g')
     if a:expand_prjname
         let s = substitute(s, '\$PRJNAME\>', '\=a:prj.info.name', 'g')
     endif
     return s
-endfunction
+endfunction "}}}
 
-""
-" Either 'quickfix', 'buffer', 'terminal', 'external', 'cmdline' or 'vim'.
-""
+
 function! s:get_cmd_mode(task) abort
+    " Either 'quickfix', 'buffer', 'terminal', 'external', 'cmdline' or 'vim'. {{{1
     let mode = filter(copy(a:task.fields), { k,v -> k =~ '^output' })
     return len(mode) > 0 ? values(mode)[0] : 'quickfix'
-endfunction
+endfunction "}}}
 
-""
-" Buffer and terminal modes can define position after ':'
-""
+
 function! s:get_pos(mode) abort
+    " Buffer and terminal modes can define position after ':' {{{1
     if a:mode !~ '\v^(buffer|terminal):'.s:v.pospat
         return {}
     else
         return {'pos': substitute(a:mode, '^\w\+:', '', '')}
     endif
-endfunction
+endfunction "}}}
 
-""
-" All options have a default of 0.
-" Options defined in the 'options' field will be set to 1.
-""
+
 function! s:get_opts(opts) abort
+    " All options have a default of 0. {{{1
+    " Options defined in the 'options' field will be set to 1.
     let opts = {}
     for v in a:opts
         let opts[v] = 1
     endfor
     return opts
-endfunction
+endfunction "}}}
 
-""
-" Command line completion for tasks.
-""
+
 function! tasks#complete(A, C, P) abort
+    " Command line completion for tasks. {{{1
     let valid = keys(get(tasks#get(), 'tasks', {}))
     return filter(sort(valid), 'v:val=~#a:A')
-endfunction
+endfunction "}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " List tasks
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-""
-" Display tasks in the command line, or in json format.
-""
 function! tasks#list(as_json) abort
+    " Display tasks in the command line, or in json format. {{{1
     let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
@@ -346,23 +331,21 @@ function! tasks#list(as_json) abort
         exe 'echo' . n string(cmd)
     endfor
     echohl None
-endfunction
+endfunction "}}}
 
-""
-" Top bar for command-line tasks list.
-""
+
 function! s:cmdline_bar(prj) abort
+    " Top bar for command-line tasks list. {{{1
     echohl QuickFixLine
     let header = has_key(a:prj, 'info') ?
                 \'Project: '. a:prj.info.name : 'Global tasks'
     let right   = repeat(' ', &columns - 10 - strlen(header))
     echon '      ' . header . '   ' . right
-endfunction
+endfunction "}}}
 
-""
-" Display tasks in a buffer, in json format.
-""
+
 function! s:tasks_as_json(prj) abort
+    " Display tasks in a buffer, in json format. {{{1
     let py =        executable('python3') ? 'python3'
                 \ : executable('python')  ? 'python' : ''
     if py == ''
@@ -380,7 +363,7 @@ function! s:tasks_as_json(prj) abort
     setfiletype json
     let &l:statusline = '%#PmenuSel# Tasks %#Pmenu# ft=' .
                 \       ft . ' %#Statusline# ' . f
-endfunction
+endfunction "}}}
 
 
 
@@ -393,6 +376,7 @@ endfunction
 " @param ...: prompt for extra args
 ""
 function! tasks#choose(...) abort
+    "{{{1
     let prj = tasks#get(1)
     if s:no_tasks(prj)
         return
@@ -488,7 +472,7 @@ function! tasks#choose(...) abort
     else
         redraw
     endif
-endfunction
+endfunction "}}}
 
 
 
@@ -497,10 +481,9 @@ endfunction
 " Get configuration files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-""
-" Path for the global configuration.
-""
+
 function! s:get_global_ini() abort
+    " Path for the global configuration. {{{1
     if exists('s:global_ini') && s:global_ini != ''
         return s:global_ini
     endif
@@ -521,14 +504,13 @@ function! s:get_global_ini() abort
         endif
     endif
     return s:global_ini
-endfunction
+endfunction "}}}
 
-""
-" Path for the project configuration.
-""
+
 function! s:get_local_ini() abort
+    " Path for the project configuration. {{{1
     return get(g:, 'async_taskfile_local', '.tasks')
-endfunction
+endfunction "}}}
 
 
 
@@ -536,21 +518,19 @@ endfunction
 " Helpers
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-""
-" No tasks available for current project/filetye
-""
+
 function! s:no_tasks(prj) abort
+    " No tasks available for current project/filetye. {{{1
     if empty(a:prj) || empty(a:prj.tasks)
         echon s:ut.badge() 'no tasks'
         return v:true
     endif
     return v:false
-endfunction
+endfunction "}}}
 
-""
-" Search recursively for a local tasks file in parent directories.
-""
+
 function! s:find_root() abort
+    " Search recursively for a local tasks file in parent directories. {{{1
     let dir = expand('%:p:h')
     let fname = s:get_local_ini()
     while v:true
@@ -563,15 +543,14 @@ function! s:find_root() abort
         endif
     endwhile
     return v:null
-endfunction
+endfunction "}}}
 
-""
-" Confirm root change.
-""
+
 function! s:change_root(root) abort
+    " Confirm root change. {{{1
     return a:root != v:null &&
                 \ confirm('Change directory to ' . a:root . '?', "&Yes\n&No") == 1
-endfunction
+endfunction "}}}
 
 
 
@@ -587,4 +566,4 @@ let s:bvar = { v -> getbufvar(bufnr(''), v) }
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" vim: et sw=4 ts=4 sts=4 fdm=indent fdn=1
+" vim: ft=vim et ts=4 sw=4 fdm=marker
