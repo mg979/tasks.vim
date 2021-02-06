@@ -194,7 +194,7 @@ let s:tagpat  = '\v]\s+\@\zs\w+'
 
 let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)*\s*$'
 let s:envsect  = '^#env\(ironment\)\?$'
-let s:infosect = '^#info$'
+let s:infosect = '^#project$'
 
 let s:ut = tasks#util#init()
 let s:v  = s:ut.Vars
