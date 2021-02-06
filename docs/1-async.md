@@ -312,7 +312,7 @@ Options explained:
 ___grep___: should be set to 1 (true) when running a command like `grep`, `rg`
 and the like. Quickfix output and exit status are handled accordingly.
 
-___makeprg___, ___grepprg___, ___errorformat___, ___grepformat___: there are
+___makeprg___, ___grepprg___, ___errorformat___, ___grepformat___: these are
 the settings that control the command to run, and the errorformat for the
 quickfix window. The grep variants are used if _grep_ is true. Note that they
 only matter when calling `async#qfix`, because the command provided to

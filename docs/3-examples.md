@@ -3,7 +3,7 @@ layout: docpage
 title: examples
 ---
 
-If you didn't read yet the [tasks](1-tasks.html) section, you probably
+If you didn't read yet the [tasks](2-tasks.html) section, you probably
 won't be able to make much sense out of the following examples.
 
 ### markdown preview
