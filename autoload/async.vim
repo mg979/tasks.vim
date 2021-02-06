@@ -81,6 +81,11 @@ fun! async#qfix(args, ...) abort
   let user = extend(s:default_opts(), a:0 ? a:1 : {})
   let user.args = a:args
 
+  " grep commands don't update current buffer by default
+  if a:0 && get(a:1, 'grep', 0) && !has_key(a:1, 'nosave')
+    let user.nosave = 1
+  endif
+
   " pattern for QuickFixCmdPre and QuickFixCmdPost
   if user.qfautocmd == ''
     let user.qfautocmd = user.grep ? 'grep' : 'make'
@@ -561,9 +566,9 @@ function! s:user_opts(args, mode) abort
   if len(a:args) > 2
     let useropts.on_exit = a:args[2]
   endif
-  if get(useropts, 'wall', 0)
+  if useropts.wall
     silent! wall
-  elseif !get(useropts, 'nosave', 0)
+  elseif !useropts.nosave
     update
   endif
   return useropts
