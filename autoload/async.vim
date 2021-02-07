@@ -48,6 +48,9 @@ fun! async#cmd(cmd, mode, ...) abort
   " {{{1
   let useropts = s:user_opts(a:000, a:mode)
   let jobopts = a:0 > 1 ? a:2 : {}
+  if useropts.noenv
+    silent! unlet jobopts.env
+  endif
   " handle also compilers, if not done already
   if useropts.compiler != '' && s:set_compiler(useropts) == v:false
     return 0
@@ -529,6 +532,7 @@ endfun "}}}
 "  'outfile'     file where to write out      default: ''
 "  'errfile'     file where to write err      default: ''
 "  'noquit'      when quitting vim            default: 0
+"  'noenv'       don't set env variables      default: 0
 fun! s:default_opts()
   return {
         \ 'makeprg': s:bufvar('&makeprg'),
@@ -550,6 +554,7 @@ fun! s:default_opts()
         \ 'outfile': '',
         \ 'errfile': '',
         \ 'noquit': 0,
+        \ 'noenv': 0,
         \}
 endfun
 
@@ -651,6 +656,9 @@ endfun
 " s:tempscript: make windows script that contains env variables and command
 ""
 fun! s:tempscript(cmd, env, wsl) abort
+  if empty(a:env)
+    return a:wsl ? 'sh ' . a:cmd : a:cmd
+  endif
   let lines = []
   if a:wsl
     for var in keys(a:env)

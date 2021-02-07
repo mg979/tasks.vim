@@ -306,6 +306,7 @@ You can see that most options have a default of 0, or an empty string.
 | `outfile`    | file where to write out      | ''           |
 | `errfile`    | file where to write err      | ''           |
 | `noquit`     | when quitting vim            | 0            |
+| `noenv`      | don't set env variables      | 0            |
 
 Options explained:
 
@@ -345,3 +346,4 @@ provide specific paths (_outfile_ and _errfile_).
 __noquit__: vim terminates running jobs when quitting by default, setting this
 option prevents it and leaves them running after vim has quitted.
 
+__noenv__: don't set any environmental variable.

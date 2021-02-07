@@ -397,6 +397,7 @@ These options are:
 | `keepouts`   | keep out/err in memory                     |
 | `writelogs`  | write out/err to logfiles                  |
 | `noquit`     | do not terminate job when quitting vim     |
+| `noenv`      | don't set environmental variables          |
 
 Refer to [User Options](1-async.html#h-user-options) for more details on each
 one.
