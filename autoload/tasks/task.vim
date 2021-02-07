@@ -251,7 +251,7 @@ let s:options = [
             \'grep', 'locl', 'append',
             \'focus', 'nojump', 'openqf',
             \'nosave', 'wall', 'keepouts',
-            \'writelogs', 'termonquit',
+            \'writelogs', 'noquit',
             \]
 
 let s:fields = {

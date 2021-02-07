@@ -305,7 +305,7 @@ You can see that most options have a default of 0, or an empty string.
 | `writelogs`  | write out/err to logfiles    | 0            |
 | `outfile`    | file where to write out      | ''           |
 | `errfile`    | file where to write err      | ''           |
-| `termonquit` | when quitting vim            | 0            |
+| `noquit`     | when quitting vim            | 0            |
 
 Options explained:
 
@@ -342,7 +342,6 @@ __writelogs__, __outfile__, __errfile__: if _writelogs_ is true, logs will be
 written to files, whose names are obtained with `tempname()`, unless you
 provide specific paths (_outfile_ and _errfile_).
 
-__termonquit__: when quitting vim, if a job is still running, you are prompted
-if you want to terminate it or not. This option bypasses this prompt and
-automatically terminates the job when quitting.
+__noquit__: vim terminates running jobs when quitting by default, setting this
+option prevents it and leaves them running after vim has quitted.
 

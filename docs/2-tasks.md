@@ -396,7 +396,7 @@ These options are:
 | `wall`       | do :wall before cmd                        |
 | `keepouts`   | keep out/err in memory                     |
 | `writelogs`  | write out/err to logfiles                  |
-| `termonquit` | terminate job when quitting vim            |
+| `noquit`     | do not terminate job when quitting vim     |
 
 Refer to [User Options](1-async.html#h-user-options) for more details on each
 one.

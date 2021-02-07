@@ -528,7 +528,7 @@ endfun "}}}
 "  'writelogs'   write out/err to logfiles    default: 0
 "  'outfile'     file where to write out      default: ''
 "  'errfile'     file where to write err      default: ''
-"  'termonquit'  when quitting vim            default: 0
+"  'noquit'      when quitting vim            default: 0
 fun! s:default_opts()
   return {
         \ 'makeprg': s:bufvar('&makeprg'),
@@ -549,7 +549,7 @@ fun! s:default_opts()
         \ 'writelogs': 0,
         \ 'outfile': '',
         \ 'errfile': '',
-        \ 'termonquit': 0,
+        \ 'noquit': 0,
         \}
 endfun
 
@@ -738,6 +738,7 @@ fun! s:job_opts(useropts) abort
           \ 'on_stderr': function('s:nvim_err'),
           \ 'stdout_buffered' : 1,
           \ 'stderr_buffered' : 1,
+          \ 'detach': a:useropts.noquit,
           \}
   else
     let opts = {
@@ -746,6 +747,7 @@ fun! s:job_opts(useropts) abort
           \ 'err_cb': function('s:vim_err'),
           \ 'in_io': a:useropts.grep ? 'null' : 'pipe',
           \ 'err_io': 'pipe',
+          \ 'stoponexit': a:useropts.noquit ? '' : 'term',
           \}
   endif
   return opts
@@ -913,19 +915,6 @@ fun! s:prompt_id(finished) abort
   return id
 endfun
 
-" When quitting vim, perform action on running jobs. {{{1
-
-fun! s:on_vim_quit() abort
-  if !empty(g:async_jobs)
-    echo 'There are running jobs.'
-    for id in keys(g:async_jobs)
-      if g:async_jobs[id].termonquit ||
-            \confirm('Stop job with id '. id, "&Yes\n&No") == 1
-        call async#stop(id, 0)
-      endif
-    endfor
-  endif
-endfun
 
 "}}}
 
@@ -937,10 +926,5 @@ let s:is_wsl     = exists('$WSLENV')
 let s:py         = executable('python') ? 'python' : executable('python3') ? 'python3' : ''
 let s:cmdscripts = []
 let s:bufvar     = { v -> getbufvar(bufnr(''), v) }
-
-augroup async-stopjobs
-  au!
-  autocmd VimLeavePre * call s:on_vim_quit()
-augroup END
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
