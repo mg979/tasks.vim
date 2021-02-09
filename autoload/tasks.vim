@@ -111,14 +111,14 @@ function! tasks#run(args) abort
     let cmd = s:choose_command(task)
     let args = len(a) > 1 ? join(a[1:]) : get(task.fields, 'args', '')
     let mode = s:get_cmd_mode(task)
+    let options = get(task.fields, 'options', [])
 
     if mode ==# 'vim'
-        call s:execute_vim_command(cmd, args)
+        call s:execute_vim_command(cmd, args, options)
         return
     endif
 
-    let opts = extend(s:get_pos(mode),
-                \     s:get_opts(get(task.fields, 'options', [])))
+    let opts = extend(s:get_pos(mode), s:get_opts(options))
     let useropts = extend({
                 \ 'makeprg': cmd,
                 \ 'grepprg': cmd,
@@ -140,12 +140,17 @@ function! tasks#run(args) abort
 endfunction "}}}
 
 
-function! s:execute_vim_command(cmd, args)
+function! s:execute_vim_command(cmd, args, options)
     " It's a vim command, execute as-is. {{{1
+    if index(a:options, 'wall') >= 0
+        wall
+    elseif index(a:options, 'nosave') == -1
+        update
+    endif
     if a:args != ''
-        execute substitute(a:cmd . ' ' . a:args, '^VIM: ', '', '')
+        execute a:cmd . ' ' . a:args
     else
-        execute substitute(a:cmd, '^VIM: ', '', '')
+        execute a:cmd
     endif
 endfunction "}}}
 
