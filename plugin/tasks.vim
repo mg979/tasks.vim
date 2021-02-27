@@ -33,8 +33,8 @@ nnoremap <silent> <Plug>(Tasks-Choose)  :<C-u>call tasks#choose()<cr>
 nnoremap <silent> <Plug>(Tasks-Choose!) :<C-u>call tasks#choose(1)<cr>
 nnoremap <silent> <Plug>(Tasks-Profile) :<C-u>call tasks#tags#loop()<cr>
 
-nmap <silent><expr> <Plug>(Tasks-FileNext) tasks#rotate#next()
-nmap <silent><expr> <Plug>(Tasks-FilePrev) tasks#rotate#prev()
+nmap <silent><expr> <Plug>(Tasks-FileNext) tasks#rotate#file(v:count1)
+nmap <silent><expr> <Plug>(Tasks-FilePrev) tasks#rotate#file(v:count1 * -1)
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

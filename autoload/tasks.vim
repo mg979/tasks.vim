@@ -514,7 +514,7 @@ endfunction "}}}
 
 function! s:get_local_ini() abort
     " Path for the project configuration. {{{1
-    return get(g:, 'async_taskfile_local', '.tasks')
+    return getcwd() . '/' . get(g:, 'async_taskfile_local', '.tasks')
 endfunction "}}}
 
 

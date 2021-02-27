@@ -176,9 +176,11 @@ informations about the project. The only valid fields for now are:
 The _name_, in particular, is used to set the __$PRJNAME__ environment variable.
 
 The _filerotate_ field can be filled with a list of comma-separated globs (or
-filenames), relative to the project directory. The files these globs will
-expanded to can then be rotated with mappings.
-See the [Plugs](2-tasks.html#h-plugs) section.
+filenames), relative to the project directory. These files can then be rotated
+with mappings. Vim wildcards are used, so you can write globs such as
+`**/*.txt` to include also files in subdirectories.
+See `:help wildcards` for informations about globs expansion and the
+[Plugs](2-tasks.html#h-plugs) section for the mappings.
 
 
 ### task section
