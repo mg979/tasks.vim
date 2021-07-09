@@ -295,6 +295,13 @@ fun! s:cb_quickfix(job) abort
   setlocal errorformat=
   let &errorformat = job.grep ? job.grepformat : job.errorformat
 
+  " if a custom directory has been set, we must lcd into it else the qfix will
+  " point to wrong paths; do this in a new window, though
+  if !job.grep && status && has_key(a:job.opts, 'cwd') && a:job.opts.cwd != getcwd()
+    new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
+    lcd `=a:job.opts.cwd`
+  endif
+
   exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
   let cxpr =  job.locl ? 'l' : 'c'
   let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
