@@ -37,9 +37,10 @@ function! tasks#get(...) abort
     if !empty(all)
         call extend(all.tasks, gtasks, 'keep')
         call extend(all.env, genv, 'keep')
+        let all.env = s:expand_env(all.env)
+        return all
     endif
-    let all.env = s:expand_env(all.env)
-    return all
+    return {}
 endfunction "}}}
 
 
