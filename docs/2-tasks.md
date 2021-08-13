@@ -148,8 +148,8 @@ expanded inside of them.
 This by default, because you can define environmental variables with two
 special syntaxes (that can be combined):
 
-|-------|----------|
-| VAR:= | means vim filename modifiers are expanded, the variable is then assigned in the environment |
+|-------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| VAR:= | means vim filename modifiers are expanded, the variable is then assigned in the environment                                                      |
 | @VAR= | means the content will be substituted in all other environmental variables that contain it, the variable is NOT assigned in the environment |
 
 Example with variable `@FILE` both expanded and replaced in other variables:
@@ -395,19 +395,19 @@ of 0. By adding them to the _options_ field you will activate them.
 
 These options are:
 
-|------------|--------------------------------------------|
-| `grep`       | use grepprg, not makeprg                   |
-| `locl`       | use loclist, not qfix                      |
-| `openqf`     | open qfix window                           |
-| `focus`      | focus on qf window                         |
-| `nojump`     | don't jump to first item                   |
-| `append`     | append to qfix, don't add                  |
-| `nosave`     | don't :update before cmd                   |
-| `wall`       | do :wall before cmd                        |
-| `keepouts`   | keep out/err in memory                     |
-| `writelogs`  | write out/err to logfiles                  |
-| `noquit`     | do not terminate job when quitting vim     |
-| `noenv`      | don't set environmental variables          |
+|-------------|----------------------------------------|
+| `grep`      | use grepprg, not makeprg               |
+| `locl`      | use loclist, not qfix                  |
+| `openqf`    | open qfix window                       |
+| `focus`     | focus on qf window                     |
+| `nojump`    | don't jump to first item               |
+| `append`    | append to qfix, don't add              |
+| `nosave`    | don't :update before cmd               |
+| `wall`      | do :wall before cmd                    |
+| `keepouts`  | keep out/err in memory                 |
+| `writelogs` | write out/err to logfiles              |
+| `noquit`    | do not terminate job when quitting vim |
+| `noenv`     | don't set environmental variables      |
 
 Refer to [User Options](1-async.html#h-user-options) for more details on each
 one.

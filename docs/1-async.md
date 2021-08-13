@@ -64,10 +64,10 @@ easy-to-use interface to define job commands and their options.
 
 ### :Make commands
 
-|Command   |Args|Bang|Description                                                    |
-|----------|----|----|---------------------------------------------------------------|
-|Make      |  ? |  ? | run `:make` asynchronously and populate quickfix with results |
-|LMake     |  ? |  ? | same, but use the location list for the current window        |
+| Command | Args | Bang | Description                                                   |
+|---------|------|------|---------------------------------------------------------------|
+| Make    | ?    | ?    | run `:make` asynchronously and populate quickfix with results |
+| LMake   | ?    | ?    | same, but use the location list for the current window        |
 
 Unless _!_ (bang) is used, you will be brought to the first error.
 
@@ -286,29 +286,29 @@ Most functions that can start a job accept a dictionary with user options as
 optional argument. This is a list of valid options with their defaults.
 You can see that most options have a default of 0, or an empty string.
 
-| Option     | Description                  | Default      |
-|------------|------------------------------|--------------|
-| `grep`       | use grepprg, not makeprg     | 0            |
-| `makeprg`    | makeprg                      | &makeprg     |
-| `grepprg`    | grepprg                      | &grepprg     |
-| `errorformat`| errorformat                  | &errorformat |
-| `grepformat` | grepformat                   | &grepformat  |
-| `compiler`   | run :compiler x              | ''           |
-| `qfautocmd`  | quickfix autocommands        | _read below_ |
-| `env`        | environmental variables      | {}           |
-| `locl`       | use loclist, not qfix        | 0            |
-| `openqf`     | open qfix window             | 0            |
-| `focus`      | focus on qf window           | 0            |
-| `nojump`     | don't jump to first item     | 0            |
-| `append`     | append to qfix, don't add    | 0            |
-| `nosave`     | don't :update before cmd     | !grep        |
-| `wall`       | do :wall before cmd          | 0            |
-| `keepouts`   | keep out/err in memory       | 0            |
-| `writelogs`  | write out/err to logfiles    | 0            |
-| `outfile`    | file where to write out      | ''           |
-| `errfile`    | file where to write err      | ''           |
-| `noquit`     | when quitting vim            | 0            |
-| `noenv`      | don't set env variables      | 0            |
+| Option        | Description               | Default      |
+|---------------|---------------------------|--------------|
+| `grep`        | use grepprg, not makeprg  | 0            |
+| `makeprg`     | makeprg                   | &makeprg     |
+| `grepprg`     | grepprg                   | &grepprg     |
+| `errorformat` | errorformat               | &errorformat |
+| `grepformat`  | grepformat                | &grepformat  |
+| `compiler`    | run :compiler x           | ''           |
+| `qfautocmd`   | quickfix autocommands     | _read below_ |
+| `env`         | environmental variables   | {}           |
+| `locl`        | use loclist, not qfix     | 0            |
+| `openqf`      | open qfix window          | 0            |
+| `focus`       | focus on qf window        | 0            |
+| `nojump`      | don't jump to first item  | 0            |
+| `append`      | append to qfix, don't add | 0            |
+| `nosave`      | don't :update before cmd  | !grep        |
+| `wall`        | do :wall before cmd       | 0            |
+| `keepouts`    | keep out/err in memory    | 0            |
+| `writelogs`   | write out/err to logfiles | 0            |
+| `outfile`     | file where to write out   | ''           |
+| `errfile`     | file where to write err   | ''           |
+| `noquit`      | when quitting vim         | 0            |
+| `noenv`       | don't set env variables   | 0            |
 
 Options explained:
 
