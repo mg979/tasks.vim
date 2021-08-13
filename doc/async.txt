@@ -1,73 +1,38 @@
-async.txt
+*async.txt*
 
-================================================================================
-CONTENTS                                                          *async-contents*
+==============================================================================
+CONTENTS                                                           *async-vim*
 
-    1. title: async...........................................|async-title:_async|
-    2. What is a job?.......................................|async-what_is_a_job?|
-    3. What does this module do?.................|async-what_does_this_module_do?|
-    4. Commands...................................................|async-commands|
-        4.1. :Make commands.................................|async-:make_commands|
-        4.2. :Compiler commands.........................|async-:compiler_commands|
-        4.3. :Grep commands.................................|async-:grep_commands|
-        4.4. :Jobs command...................................|async-:jobs_command|
-        4.5. Other commands.................................|async-other_commands|
-    5. Internals.................................................|async-internals|
-        5.1. g:async_jobs.....................................|async-g:async_jobs|
-        5.2. g:async_finished_jobs...................|async-g:async_finished_jobs|
-        5.3. Functions...........................................|async-functions|
-        5.4. User options.....................................|async-user_options|
+1. What does this module do?....................................|async-module|
+2. What is a job?........................................|async-what-is-a-job|
+2. Commands...................................................|async-commands|
+    3.1. :Make commands...........................................|async-make|
+    3.2. :Compiler commands...................................|async-compiler|
+    3.3. :Grep commands...........................................|async-grep|
+    3.4. :Jobs command............................................|async-jobs|
+    3.5. Other commands.................................|async-other-commands|
+4. Internals.................................................|async-internals|
+    4.1. Functions...........................................|async-functions|
+    4.2. User options.....................................|async-user-options|
 
---------------------------------------------------------------------------------
-layout: docpage
 
---------------------------------------------------------------------------------
-TITLE: ASYNC                                                  *async-title:_async*
 
-async.vim is the module that handles asynchronous jobs for both vim (>= 8.1)
+
+`async.vim` is the module that handles asynchronous jobs for both vim (>= 8.1)
 and neovim.
 
---------------------------------------------------------------------------------
-WHAT IS A JOB?                                              *async-what_is_a_job?*
 
-In this context, with job is meant an external process that is started
-within vim, with different purposes (building an executable, running tests,
-performing a lint on the current buffer, executing a script, etc).
 
-As you maybe will know, vim has a command (`:make`) that executes a system
-process, defined by the `makeprg` option, then captures its output with
-a format defined by the `errorformat` option, and fills the quickfix window
-with the results (possibly build errors, or of any other type). The
-default `makeprg` is `make`, hence the name of the command.
 
-Vim has also the `:compiler` command, that sets `makeprg` and `errorformat`
-to predefined values, so that simple build systems can be defined this way.
-
-The `:make` command is synchronous, that is, the whole editor is frozen while
-the external process runs.
-
-If you ever used the `:grep` command, you'll possibly know that it uses similar
-settings (`grepprg` and `grepformat`) to produce its results. As a matter of
-fact, they work very similarly, and also the `:grep` command is synchronous.
-
-Starting from version 8.0 (and neovim did before it), vim supports asynchronous
-jobs, but all default commands still work synchronously, and implementation of
-asynchronous commands is left to plugins. There's also the fact that vim and
-neovim implementation of jobs is different and incompatible, so plugins must
-handle that on their own.
-
-This module provides both a way to start and manage jobs, and an unified
-interface that works in the same way for vim and neovim.
-
---------------------------------------------------------------------------------
-WHAT DOES THIS MODULE DO?                        *async-what_does_this_module_do?*
+==============================================================================
+WHAT DOES THIS MODULE DO                                        *async-module*
 
 This module provides:
 
-*   a series of commands that let `:make` and `:grep` work asynchronously.
-*   a job indexing system, so that you can have an overview of currently running
-    jobs (to stop them if needed), and also finished jobs (to check their exit
-    status).
+*   a series of commands that let |:make| and |:grep| work asynchronously.
+*   a job indexing system, so that you can have an overview of currently
+    running jobs (to stop them if needed), and also finished jobs (to check
+    their exit status).
 *   functions that will start asynchronous jobs, with many possible
     customizations.
 
@@ -77,56 +42,99 @@ understanding of how vim and neovim handle jobs, so it's not exactly for the
 average vim user. But it's what the second module (tasks.vim) is for: an
 easy-to-use interface to define job commands and their options.
 
---------------------------------------------------------------------------------
-COMMANDS                                                          *async-commands*
 
-:MAKE COMMANDS                                              *async-:make_commands*
 
-|Command   |Args|Bang|Description                                                    |
-|----------|----|----|---------------------------------------------------------------|
-|Make      |  ? |  ? | run `:make` asynchronously and populate quickfix with results |
-|LMake     |  ? |  ? | same, but use the location list for the current window        |
 
-Unless ! (bang) is used, you will be brought to the first error.
+==============================================================================
+WHAT IS A JOB                                            *async-what-is-a-job*
 
-Any extra argument is passed as-is to the `:make` command.
+In this context, with job is meant an external process that is started
+within vim, with different purposes (building an executable, running tests,
+performing a lint on the current buffer, executing a script, etc).
 
-:COMPILER COMMANDS                                      *async-:compiler_commands*
+As you maybe will know, vim has a command (|:make|) that executes a system
+process, defined by the |makeprg| option, then captures its output with
+a format defined by the |errorformat| option, and fills the quickfix window
+with the results (possibly build errors, or of any other type). The
+default |makeprg| is |make|, hence the name of the command.
 
-|Command   |Args|Bang|Description                            |
-|----------|----|----|---------------------------------------|
-|Compiler  |  1 |  1 | execute `:compiler`, then `:Make`     |
-|LCompiler |  1 |  1 | same, but use `:LMake`                |
+Vim has also the |:compiler| command, that sets |makeprg| and |errorformat|
+to predefined values, so that simple build systems can be defined this way.
 
-Unless ! (bang) is used, you will be brought to the first error.
+The |:make| command is synchronous, that is, the whole editor is frozen while
+the external process runs.
 
-Differently from vim, with the `:Compiler` commands changes to `&makeprg` and
-`&errorformat` are temporary, that is, they are reset to the previous values
+If you ever used the |:grep| command, you'll possibly know that it uses
+similar settings (|grepprg| and |grepformat|) to produce its results. As
+a matter of fact, they work very similarly, and also the |:grep| command is
+synchronous.
+
+Starting from version 8.0 (and neovim did before it), vim supports
+asynchronous jobs, but all default commands still work synchronously, and
+implementation of asynchronous commands is left to plugins. There's also the
+fact that vim and neovim implementation of jobs is different and incompatible,
+so plugins must handle that on their own.
+
+This module provides both a way to start and manage jobs, and an unified
+interface that works in the same way for vim and neovim.
+
+
+
+
+==============================================================================
+COMMANDS                                                      *async-commands*
+
+
+
+MAKE COMMANDS                                                     *async-make*
+
+  `Make`     run :make asynchronously and populate quickfix with results
+  `LMake`    same, but use the location list for the current window
+
+Unless <bang> is used, you will be brought to the first error.
+
+Any extra argument is passed as-is to the |:make| command.
+
+
+
+
+COMPILER COMMANDS                                             *async-compiler*
+
+  `Compiler`    execute :compiler, then `:Make`
+  `LCompiler`   same, but use `:LMake`
+
+Unless <bang> is used, you will be brought to the first error.
+
+Differently from vim, with the `:Compiler` commands changes to |&makeprg| and
+|&errorformat| are temporary, that is, they are reset to the previous values
 after the command is issued.
 
-The first argument of the command is the compiler type, any other argument will
-be passed to the :Make command that is run after it.
+The first argument of the command is the compiler type, any other argument
+will be passed to the :Make command that is run after it.
 
 They can be used for one-shot lintings, for example on a python buffer:
 >
     :Compiler pylint %
 <
 
-:GREP COMMANDS                                              *async-:grep_commands*
 
-|Command   |Args|Bang|Description                                                     |
-|----------|----|----|----------------------------------------------------------------|
-|Grep      |  1 |  1 | run `:grep` asynchronously and populate quickfix with results  |
-|GrepAdd   |  1 |  1 | append to list instead of creating a new one                   |
-|LGrep     |  1 |  1 | as `:Grep`, but use the location list for the current window   |
-|LGrepAdd  |  1 |  1 | as for `:GrepAdd`                                              |
 
-Unless ! (bang) is used, you will be brought to the first match.
+GREP COMMANDS                                                     *async-grep*
 
-As for `:Make`, they are wrappers around `:grep`, that is, they expect the same
-kind of arguments that `:grep` would expect (switches, quotes, etc).
+  `Grep`       run :grep asynchronously and populate quickfix with results
+  `GrepAdd`    append to list instead of creating a new one
+  `LGrep`      as `:Grep`, but use the location list for the current window
+  `LGrepAdd`   as for `:GrepAdd`
 
-:JOBS COMMAND                                                *async-:jobs_command*
+Unless <bang> is used, you will be brought to the first match.
+
+As for `:Make`, they are wrappers around |:grep|, that is, they expect the same
+kind of arguments that |:grep| would expect (switches, quotes, etc).
+
+
+
+
+JOBS COMMAND                                                      *async-jobs*
 
 The `:Jobs` command will list current running jobs, and prompt for a job id to
 terminate.
@@ -134,69 +142,78 @@ terminate.
 `:Jobs!` will show finished jobs, and prompt for a job id for which
 you want to see the full details (a system python installation is needed).
 
-OTHER COMMANDS                                              *async-other_commands*
 
-|Command   |Args|Bang|Description                                                     |
-|----------|----|----|----------------------------------------------------------------|
-|Async     | 1  | 1  | run a command asynchronously in headless mode                  |
-|AsyncBuf  | 1  | 1  | run a command asynchronously and print output in a buffer      |
-|AsyncCmd  | 1  | 1  | echo the output of an asynchronous command to the command line |
+
+
+OTHER COMMANDS                                          *async-other-commands*
+
+  `Async`      run a command asynchronously in headless mode
+  `AsyncBuf`   run a command asynchronously and print output in a buffer
+  `AsyncCmd`   echo the output of an asynchronous command to the command line
 
 Even in headless mode, the job is managed and can be accessed with `:Jobs[!]`.
 
 Output and errors are not retained to spare memory (who knows how big they
-are), but if BANG is used, both stdout and stderr are written to log files in
+are), but if <bang> is used, both stdout and stderr are written to log files in
 temporary locations. You can then get their location with the `:Jobs!` command
-(or directly from the global index). More on this where |job options| are
+(or directly from the global index). More on this where job options are
 discussed in detail.
 
---------------------------------------------------------------------------------
-INTERNALS                                                        *async-internals*
+
+
+
+==============================================================================
+INTERNALS                                                    *async-internals*
 
 The rest of the documentation for this module is of no use for the regular
 user, because it describes how jobs are run and indexed, and the options they
 use. Most options can be set with the interface offered by tasks.vim.
 
-G:ASYNC_JOBS                                                  *async-g:async_jobs*
+                                                                *g:async_jobs*
 
 Running jobs are stored in a global dictionary. To support both vim and nvim,
 incremental ids are used: for each new job, a new id is added to the global
 dictionary. Parallel jobs are possible. For each entry, values are:
 
-|----------|---------------------------------------------------------|
-| id       | the id (same as the key)                                |
-| pid      | the process id                                          |
-| job      | the job object/handle                                   |
-| title    | the command as requested by the user, used as title     |
-| cmd      | the argument for the job starter                        |
-| opts     | options for the job starter                             |
-| out      | a list, initially empty, will be filled with the stdout |
-| err      | same for stderr                                         |
+ Key        Meaning~
+------------------------------------------------------------------------------
+  `id`        the id (same as the key)
+  `pid`       the process id
+  `job`       the job object/handle
+  `title`     the command as requested by the user, used as title
+  `cmd`       the argument for the job starter
+  `opts`      options for the job starter
+  `out`       a list, initially empty, will be filled with the stdout
+  `err`       same for stderr
 
 This table can then be extended by user options passed to the function that
 starts the job.
 
-G:ASYNC_FINISHED_JOBS                                *async-g:async_finished_jobs*
+                                                       *g:async_finished_jobs*
 
 When a job terminates, it is removed from _g:asyncjobs and added to
-_g:async_finishedjobs, stripped of its out and err, to make it lighter.
+|g:async_finished_jobs|, stripped of its out and err, to make it lighter.
 
 If it is needed to retrieve the stdout and stderr at a later stage, logging
 to disk should be enabled in advance, because after a job has terminated and
 added to this variable, they are removed from memory.
 
-As stated before, the command `:Jobs!` can pretty print the selected id from
+As stated before, the command |:Jobs!| can pretty print the selected id from
 this table for you.
 
-FUNCTIONS                                                        *async-functions*
+
+
+
+==============================================================================
+FUNCTIONS                                                    *async-functions*
 
 Function: async#cmd(cmd, mode, ...)
 
 Starts an asynchronous process.
 The first of the two optional dictionaries contains user options, that are
 stored in the global dictionary, and that can be used later in custom
-callbacks. The second one can contain vim |job options|.
-While the user options can contain any field, the |job options| dictionary is
+callbacks. The second one can contain vim |job-options|.
+While the user options can contain any field, the job options dictionary is
 restricted to supported fields (because vim doesn't accept extra fields,
 contrary to nvim).
 >
@@ -204,11 +221,14 @@ contrary to nvim).
     @param mode: quickfix, buffer, terminal, external, cmdline or headless
     @param ...:  can be one or two dicts
                  - first is 'useropts' (user data stored in g:async_jobs[id])
-                 - second is 'jobopts' (merged with |job options|)
+                 - second is 'jobopts' (merged with job options)
     Returns: the id of the job if successful, or 0
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#qfix(args, ...)
 
 Runs a job and populate quickfix with results.
@@ -218,17 +238,23 @@ Runs a job and populate quickfix with results.
     Returns: the id of the job if successful, or 0
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#compiler(args, ...)
 
-Sets `compiler`, then executes the job in quickfix mode.
+Sets |compiler|, then executes the job in quickfix mode.
 >
     @param args: the compiler name, followed by any argument
     @param ...:  optional dicts as for async#cmd (useropts, jobopts)
     Returns: the id of the job if successful, or 0
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#stop(id, ...)
 
 Stops jobs.
@@ -238,7 +264,10 @@ Stops jobs.
     Returns: the id of the stopped job, or 0 if all jobs are stopped.
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#list(finished)
 
 Lists running or finished jobs. Prompts for id of running job to
@@ -247,7 +276,10 @@ terminate/finished job to pretty print.
     @param finished: list finished jobs, not running jobs.
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#expand(cmd, ...)
 
 Expands filename modfiers/variables in a given string.
@@ -258,7 +290,10 @@ Includes args and performs expansions for the Make/Grep commands.
     Returns: the full command
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#remove_job(job)
 
 Removes a job from the global dictionary, when job has exited.
@@ -267,7 +302,10 @@ Removes a job from the global dictionary, when job has exited.
     Returns: the removed entry
 <
 
---------------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------------
 Function: async#finish(exit_cb, job, status, ...)
 
 Adds finished job to the global table, and stores its exit status.
@@ -278,72 +316,77 @@ Adds finished job to the global table, and stores its exit status.
     @param ...:     the event type (passed by nvim, unused)
 <
 
-USER OPTIONS                                                  *async-user_options*
+USER OPTIONS                                              *async-user-options*
 
 Most functions that can start a job accept a dictionary with user options as
 optional argument. This is a list of valid options with their defaults.
 You can see that most options have a default of 0, or an empty string.
 
-| Option        | Description               | Default      |
-|---------------|---------------------------|--------------|
-| `grep`        | use grepprg, not makeprg  | 0            |
-| `makeprg`     | makeprg                   | &makeprg     |
-| `grepprg`     | grepprg                   | &grepprg     |
-| `errorformat` | errorformat               | &errorformat |
-| `grepformat`  | grepformat                | &grepformat  |
-| `compiler`    | run :compiler x           | ''           |
-| `qfautocmd`   | quickfix autocommands     | read below   |
-| `env`         | environmental variables   | {}           |
-| `locl`        | use loclist, not qfix     | 0            |
-| `openqf`      | open qfix window          | 0            |
-| `focus`       | focus on qf window        | 0            |
-| `nojump`      | don't jump to first item  | 0            |
-| `append`      | append to qfix, don't add | 0            |
-| `nosave`      | don't :update before cmd  | !grep        |
-| `wall`        | do :wall before cmd       | 0            |
-| `keepouts`    | keep out/err in memory    | 0            |
-| `writelogs`   | write out/err to logfiles | 0            |
-| `outfile`     | file where to write out   | ''           |
-| `errfile`     | file where to write err   | ''           |
-| `noquit`      | when quitting vim         | 0            |
-| `noenv`       | don't set env variables   | 0            |
+ Option         Description                   Default ~
+------------------------------------------------------------------------------
+ `grep`           use grepprg, not makeprg      0
+ `makeprg`        makeprg                       &makeprg
+ `grepprg`        grepprg                       &grepprg
+ `errorformat`    errorformat                   &errorformat
+ `grepformat`     grepformat                    &grepformat
+ `compiler`       run :compiler x               ''
+ `qfautocmd`      quickfix autocommands         read below
+ `env`            environmental variables       {}
+ `locl`           use loclist, not qfix         0
+ `openqf`         open qfix window              0
+ `focus`          focus on qf window            0
+ `nojump`         don't jump to first item      0
+ `append`         append to qfix, don't add     0
+ `nosave`         don't :update before cmd      !grep
+ `wall`           do :wall before cmd           0
+ `keepouts`       keep out/err in memory        0
+ `writelogs`      write out/err to logfiles     0
+ `outfile`        file where to write out       ''
+ `errfile`        file where to write err       ''
+ `noquit`         when quitting vim             0
+ `noenv`          don't set env variables       0
 
 Options explained:
 
-grep: should be set to 1 (true) when running a command like `grep`, `rg`
+|grep|: should be set to 1 (true) when running a command like `grep`, `rg`
 and the like. Quickfix output and exit status are handled accordingly.
 
-makeprg, grepprg, errorformat, grepformat: these are
+|makeprg|, |grepprg|, |errorformat|, |grepformat|: these are
 the settings that control the command to run, and the errorformat for the
 quickfix window. The grep variants are used if grep is true. Note that they
 only matter when calling `async#qfix`, because the command provided to
 `async#cmd` is executed as-is.
 
-compiler: if not an empty string, will run the `:compiler` command with
+|compiler|: if not an empty string, will run the |:compiler| command with
 this value as argument, and then use the new values of makeprg and
 errorformat. Old values are immediately restored.
 
-qfautocmd: a pattern for the `QuickFixCmdPre/Post` autocommands. Default
-value is grep or make, depending on the grep option. Read  for more informations.
+|qfautocmd|: a pattern for the `QuickFixCmdPre/Post` autocommands. Default
+value is grep or make, depending on the grep option. Read  for more
+informations.
 
-nosave, wall: by default the current buffer is updated before
+|nosave|, |wall|: by default the current buffer is updated before
 executing the command, nosave prevents this. Other buffers are not updated,
 set option wall to 1 for this. Exception: when using the grep option,
 nosave is true by default.
 
-openqf, focus, nojump, append: by default, quickfix is
+|openqf|, |focus|, |nojump|, |append|: by default, quickfix is
 not opened, not focused if opened, the cursor will jump to the first
 error/match, and lines are added, not appended.
 
-keepouts: keep stdout and stderr in memory, stored in
-_g:async_finishedjobs, for easier retrieval.
+|keepouts|: keep stdout and stderr in memory, stored in
+|g:async_finished_jobs|, for easier retrieval.
 
-writelogs, outfile, errfile: if writelogs is true, logs will be
+|writelogs|, |outfile|, |errfile|: if writelogs is true, logs will be
 written to files, whose names are obtained with `tempname()`, unless you
 provide specific paths (outfile and errfile).
 
-noquit: vim terminates running jobs when quitting by default, setting this
+|noquit|: vim terminates running jobs when quitting by default, setting this
 option prevents it and leaves them running after vim has quitted.
 
-noenv: don't set any environmental variable.
+|noenv|: don't set any environmental variable.
 
+
+
+==============================================================================
+vim:tw=78:ts=2:sw=2:ft=help:norl:et:fen:fdl=0:
