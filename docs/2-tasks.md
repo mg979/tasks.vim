@@ -115,11 +115,13 @@ Lines that start with `;` are comments.
 
 
 ### environment section
+
 ```ini
 #environment
 BROWSER_WSL=/mnt/c/Program Files/Mozilla Firefox/firefox.exe
 BROWSER_LINUX=firefox
 ```
+
 The fields of this section are environment variables that are set before the
 command is run. Any command you define for a task will have access to these
 variables, and if the command lauches an external script, this will also have
@@ -145,7 +147,7 @@ expanded inside of them.
 
 This by default, because you can define environmental variables with two
 special syntaxes (that can be combined):
- 
+
 |-------|----------|
 | VAR:= | means vim filename modifiers are expanded, the variable is then assigned in the environment |
 | @VAR= | means the content will be substituted in all other environmental variables that contain it, the variable is NOT assigned in the environment |
@@ -159,12 +161,14 @@ MY_CMD=echo @FILE
 
 
 ### project section
+
 ```ini
 #project
 name=My project's name
 description=Some lengthy description, but it's not required
 filerotate=*.cs
 ```
+
 This is a section that can only appear in project-local files, and it contains
 informations about the project. The only valid fields for now are:
 
@@ -197,6 +201,7 @@ a project.
 
 
 ### tags and profile
+
 ```ini
 [source-script] @always
 command:vim=update | source %
@@ -222,34 +227,37 @@ Otherwise only a tag per task is allowed.
 
 
 ### task fields
+
 ```ini
 [echo-home-folder]
 command=echo $HOME
 command/Windows=@ECHO %USERPROFILE%
 output=cmdline
 ```
+
 Tasks can have any number of fields, that must be valid though. At least
 a command field is required, the rest is optional.
 
 Legal task fields are:
 
-|--------------|-------------------------|
-|command       | command to run          |
-|cwd           | working directory       |
-|output        | output mode             |
-|args          | command arguments       |
-|compiler      | any valid compiler      |
-|syntax        | for buffer output       |
-|options       | job options             |
-|errorformat   | as vim option           |
-|grepformat    | as vim option           |
-|outfile       | path for the stdout log |
-|errfile       | path for the stderr log |
-|mapping       | mapping for plug        |
+|-------------|-----------------------------------------------------------------|
+| command     | command to run                                                  |
+| cwd         | working directory                                               |
+| output      | output mode                                                     |
+| args        | command arguments                                               |
+| compiler    | any valid compiler                                              |
+| syntax      | for buffer output                                               |
+| options     | [job options](https://vimhelp.org/channel.txt.html#job-options) |
+| errorformat | as vim option                                                   |
+| grepformat  | as vim option                                                   |
+| outfile     | path for the stdout log                                         |
+| errfile     | path for the stderr log                                         |
+| mapping     | mapping for plug                                                |
 
 ---
 
 #### command
+
 ```ini
 command:c/Linux=gcc -O2 -Wall -lm "%" -o "%<"
 ```
