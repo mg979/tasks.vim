@@ -307,10 +307,12 @@ fun! s:cb_quickfix(job) abort
   let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
   let cxpr .= 'expr'
   exe cxpr 'job.out + job.err'
+  let cmd = type(job.cmd) == v:t_string ? job.cmd :
+        \ type(job.cmd) == v:t_list ? join(job.cmd) : string(job.cmd)
   if job.locl
-    call setloclist(0, [], 'r', {'title': job.cmd})
+    call setloclist(0, [], 'r', {'title': cmd})
   else
-    call setqflist([], 'r', {'title': job.cmd})
+    call setqflist([], 'r', {'title': cmd})
   endif
   exe 'silent doautocmd QuickFixCmdPost' job.qfautocmd
 
@@ -323,7 +325,7 @@ fun! s:cb_quickfix(job) abort
 
   if job.grep
     if status > 1 || status == 1 && !empty(job.err)
-      call s:echo([job.cmd] + job.err, 'WarningMsg')
+      call s:echo([cmd] + job.err, 'WarningMsg')
     elseif status == 1
       echo 'No results'
     elseif job.openqf
@@ -333,17 +335,17 @@ fun! s:cb_quickfix(job) abort
     endif
 
   elseif !status && empty(job.err)
-    echo "Success:" job.cmd
+    echo "Success:" cmd
 
   elseif failure
-    call s:echo(['Exit status: '. status, 'Command: '. job.cmd]
+    call s:echo(['Exit status: '. status, 'Command: '. cmd]
           \ + job.out + job.err, 'WarningMsg')
 
   elseif job.openqf
     call s:open_qfix(job)
 
   elseif job.nojump
-    call s:echo(['Exit status: '. status, 'Command: '. job.cmd], 'WarningMsg')
+    call s:echo(['Exit status: '. status, 'Command: '. cmd], 'WarningMsg')
   endif
 endfun
 
@@ -507,7 +509,8 @@ fun! async#finish(exit_cb, job, status, ...) abort
     unlet job.out
     unlet job.err
   endif
-  let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
+  let cmd = type(job.cmd) == v:t_string ? job.cmd :
+        \ type(job.cmd) == v:t_list ? join(job.cmd) : string(job.cmd)
   let g:async_finished_jobs[job.id] = job
 endfun "}}}
 
