@@ -1,8 +1,8 @@
 [tasks.vim](https://mg979.github.io/tasks.vim/), a rewrite of [asynctasks.vim](https://github.com/skywind3000/asynctasks.vim), is a (neo)vim plugin to manage and run global and project-local tasks, like starting builds and running tests.
 It comprises
 
-- [async.vim](https://github.com/mg979/tasks.vim/blob/master/docs/1-async.md) to handle async tasks, and
-- [tasks.vim](https://github.com/mg979/tasks.vim/blob/master/docs/2-tasks.md), the task manager itself.
+- [async.vim](https://mg979.github.io/tasks.vim/1-async.html) to handle async tasks, and
+- [tasks.vim](https://mg979.github.io/tasks.vim/2-tasks.html), the task manager itself.
 
 ## Features
 
