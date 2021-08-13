@@ -448,7 +448,7 @@ fun! async#expand(cmd, ...) abort
   endif
   " from https://github.com/edkolev/vim-amake and
   " from tpope's vim-dispatch https://github.com/tpope/vim-dispatch
-  let flags = '<\=\%(:[p8~.htreW]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)*'
+  let flags = '<\=\%(:[p8~.htreWS]\|:g\=s\(.\).\{-\}\1.\{-\}\1\)*'
   let expandable = '\\*\%(<\w\+>\|%\|#\d*\)' . flags
   let cmd = substitute(cmd, expandable, '\=s:expand(submatch(0))', 'g')
   if s:is_windows
