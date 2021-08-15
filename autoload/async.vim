@@ -307,6 +307,7 @@ fun! s:cb_quickfix(job) abort
   let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
   let cxpr .= 'expr'
   exe cxpr 'job.out + job.err'
+  let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   if job.locl
     call setloclist(0, [], 'r', {'title': job.cmd})
   else
@@ -496,6 +497,7 @@ fun! async#finish(exit_cb, job, status, ...) abort
   "{{{1
   let job = s:no_trailing_blanks(async#remove_job(a:job))
   let job.status = a:status
+  let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   call a:exit_cb(job)
   if !empty(s:cmdscripts)
     for f in s:cmdscripts
@@ -507,7 +509,6 @@ fun! async#finish(exit_cb, job, status, ...) abort
     unlet job.out
     unlet job.err
   endif
-  let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   let g:async_finished_jobs[job.id] = job
 endfun "}}}
 
