@@ -38,6 +38,8 @@ function! tasks#get(...) abort
         call extend(all.tasks, gtasks, 'keep')
         call extend(all.env, genv, 'keep')
         let all.env = s:expand_env(all.env)
+        let all.info = extend(get(all, 'globinfo', {}), get(all, 'info', {}))
+        silent! unlet all.globinfo
         return all
     endif
     return {}

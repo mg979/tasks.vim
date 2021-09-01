@@ -15,7 +15,13 @@ function! tasks#task#new(project, local, name) abort
     let t.type = s:type(a:name)
     let t.patterns = s:patterns_{t.type}
     let a:project.tasks[a:name] = t
+    let a:project.haslocalcfg = a:local
     return t
+endfunction
+
+function! s:type(name)
+    return a:name =~ '__\%(glob\)\?info__' ? substitute(a:name, '_', '', 'g') :
+                \ a:name == '__env__' ? 'env' : 'task'
 endfunction
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -35,13 +41,15 @@ let s:Task = {}
 function! s:validate_task(project, name) abort dict
     let [p, n, t] = [a:project, a:name, self]
     if s:is_env(p, n, t)            | return v:false | endif
-    if s:is_projects_info(p, n, t)  | return v:false | endif
+    if s:is_info_section(p, n, t)   | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
     if s:no_valid_fields(t.fields)  | return v:false | endif
 
     call s:clean_up_task(t)
     return v:true
 endfunction
+
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Special sections
@@ -65,14 +73,16 @@ function! s:is_env(project, name, task) abort
 endfunction
 
 
-function! s:is_projects_info(project, name, task) abort
-    if a:task.type != 'info'
+function! s:is_info_section(project, name, task) abort
+    let local = a:project.haslocalcfg
+    if local && a:task.type != 'info' || !local && a:task.type != 'globinfo'
         return v:false
     endif
-    let info = a:project.info
+    let info = local ? a:project.info : a:project.globinfo
     call extend(info, a:task.fields)
     return v:true
 endfunction
+
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -133,6 +143,7 @@ function! s:no_command(fields) abort
 endfunction
 
 
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Validate fields
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -166,6 +177,7 @@ function! s:validate_output(key, val) abort
 endfunction
 
 
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Validate command
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -190,6 +202,7 @@ function! s:validate_command(key, val) abort
 endfunction
 
 
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Clean-up
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -211,14 +224,13 @@ function! s:clean_up_task(task) abort
 endfunction
 
 
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Script variables and task fields patterns
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 let s:ut = tasks#util#init()
 let s:v  = s:ut.Vars
-
-let s:type = { n -> n == '__env__' ? 'env' : n == '__info__' ? 'info' : 'task' }
 
 let s:patterns_env = {
             \ 'envvar': '\C^@\?[A-Z_]\+:\?\ze=',
@@ -227,7 +239,12 @@ let s:patterns_env = {
 let s:patterns_info = {
             \ 'name': '^name\ze=',
             \ 'description': '^description\ze=',
+            \ 'options': '^options\ze=',
             \ 'filerotate': '^filerotate\ze=',
+            \}
+
+let s:patterns_globinfo = {
+            \ 'options': '^options\ze=',
             \}
 
 let s:patterns_task = {

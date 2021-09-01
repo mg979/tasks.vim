@@ -70,7 +70,7 @@ function! tasks#parse#do(lines, local) abort
             let current = l:NewSection('__info__')
 
         elseif !a:local && match(line, s:globsect) == 0
-            let current = l:NewSection('__info__')
+            let current = l:NewSection('__globinfo__')
 
         elseif match(line, s:tasksect) == 1
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -150,7 +150,7 @@ function! s:new_config(local) abort
         call extend(p.env, {'PRJNAME': s:ut.basedir()})
         let p.info = { 'name': s:ut.basedir() }
     else
-        let p.info = {}
+        let p.globinfo = {}
     endif
     return p
 endfunction "}}}

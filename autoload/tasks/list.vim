@@ -182,7 +182,7 @@ function! s:cmdline_bar(prj) abort
     " Top bar for command-line tasks list. {{{1
     redraw
     echohl QuickFixLine
-    let header = has_key(a:prj, 'info') ?
+    let header = has_key(a:prj.info, 'name') ?
                 \'Project: '. a:prj.info.name : 'Global tasks'
     let right   = repeat(' ', &columns - 10 - strlen(header))
     echon '      ' . header . '   ' . right
