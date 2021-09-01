@@ -73,27 +73,7 @@ function! tasks#list#choose(...) abort
     if s:ut.no_tasks(prj)
         return
     endif
-    let use_F = get(g:, 'tasks_mapping_use_Fn_keys', 6)
-    if use_F && len(keys(prj.tasks)) == 1
-        let f = substitute("\<F6>", '6$', use_F, '')
-        let Keys = { 1: f}
-        let l:PnKey = { c -> '<F'. use_F .'>' . "\t"}
-    elseif use_F && len(keys(prj.tasks)) <= 8
-        let Keys = { 1: "\<F5>", 2: "\<F6>", 3: "\<F7>", 4: "\<F8>",
-                    \5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
-        let l:PnKey = { c -> '<F'.(c+4).'>' . "\t"}
-    elseif use_F && len(keys(prj.tasks)) <= 12
-        let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
-                    \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
-                    \9: "\<F9>", 10: "\<F10>", 11: "\<F11>", 12: "\<F12>"}
-        let l:PnKey = { c -> '<F'.c.'>' . "\t"}
-    else
-        let Keys = {}
-        for i in range(1, 26)
-            let Keys[i] = nr2char(96 + i)
-        endfor
-        let l:PnKey = { c -> Keys[c] . "\t"}
-    endif
+    let Keys = s:get_keys(prj)
     let dict = {}
     let i = 1
     call s:cmdline_bar(prj)
@@ -105,7 +85,7 @@ function! tasks#list#choose(...) abort
             let Keys[i] = T.fields.mapping
             let map = T.fields.mapping ."\t"
         else
-            let map = l:PnKey(i)
+            let map = s:get_key(Keys, i)
         endif
         let dict[Keys[i]] = t
         ""
@@ -177,6 +157,13 @@ let s:ut   = tasks#util#init()
 let s:v    = s:ut.Vars
 let s:bvar = { v -> getbufvar(bufnr(''), v) }
 
+let s:Fnk = { 1: "\<F1>", 2: "\<F2>",   3: "\<F3>",   4: "\<F4>",
+            \ 5: "\<F5>", 6: "\<F6>",   7: "\<F7>",   8: "\<F8>",
+            \ 9: "\<F9>", 10: "\<F10>", 11: "\<F11>", 12: "\<F12>"}
+
+let s:Fn5 = { 1: "\<F5>", 2: "\<F6>",  3: "\<F7>",  4: "\<F8>",
+            \ 5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
+
 
 function! s:cmdline_bar(prj) abort
     " Top bar for command-line tasks list. {{{1
@@ -211,6 +198,36 @@ function! s:tasks_as_json(prj) abort
 endfunction "}}}
 
 
+function! s:get_keys(prj)
+    let n = len(keys(a:prj.tasks))
+    let F6 = has_key(a:prj.info, 'options') && a:prj.info.options =~ '\<f6key\>'
+    let Fn = has_key(a:prj.info, 'options') && a:prj.info.options =~ '\<fnkeys\>'
+
+    if F6 && n == 1
+
+        let keys = { 1: "\<F6>"}
+        let s:get_key = { k,c -> '<F6>' . "\t"}
+
+    elseif F6 && n <= 8
+
+        let keys = s:Fn5
+        let s:get_key = { k,c -> '<F'.(c+4).'>' . "\t"}
+
+    elseif (Fn || F6) && n <= 12
+
+        let keys = s:Fnk
+        let s:get_key = { k,c -> '<F'.c.'>' . "\t"}
+
+    else
+        let keys = {}
+        for i in range(1, 26)
+            let keys[i] = nr2char(96 + i)
+        endfor
+        let s:get_key = { k,c -> k[c] . "\t"}
+    endif
+
+    return keys
+endfunction
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " vim: ft=vim et ts=4 sw=4 fdm=marker
