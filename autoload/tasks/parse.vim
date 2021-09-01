@@ -69,6 +69,9 @@ function! tasks#parse#do(lines, local) abort
         elseif a:local && match(line, s:infosect) == 0
             let current = l:NewSection('__info__')
 
+        elseif !a:local && match(line, s:globsect) == 0
+            let current = l:NewSection('__info__')
+
         elseif match(line, s:tasksect) == 1
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
             " before creating a task, we check its tag, or we could overwrite
@@ -146,6 +149,8 @@ function! s:new_config(local) abort
     if a:local
         call extend(p.env, {'PRJNAME': s:ut.basedir()})
         let p.info = { 'name': s:ut.basedir() }
+    else
+        let p.info = {}
     endif
     return p
 endfunction "}}}
@@ -201,6 +206,7 @@ let s:tagpat  = '\v]\s+\@\zs\w+'
 let s:tasksect = '\v^\[\zs\.?(\w+-?\w+)+(\/(\w+,?)+)?\ze](\s+\@\w+)*\s*$'
 let s:envsect  = '^#env\(ironment\)\?$'
 let s:infosect = '^#project$'
+let s:globsect = '^#global$'
 
 let s:ut = tasks#util#init()
 let s:v  = s:ut.Vars

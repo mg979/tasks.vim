@@ -18,7 +18,7 @@ let s:keys = [
             \]
 exe printf("syn match TasksField '\\v\\C^%s|<%s>|<[A-Z_]+>\\ze\\=.+'", s:cmd, join(s:keys, '>|<'))
 
-syn match TasksSect   '^#\(\<env\>\|\<environment\>\|\<project\>\)'
+syn match TasksSect   '^#\v(<env>|<environment>|<project>|<global>)'
 syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue nextgroup=TaskString
 syn match TaskString  '.*' contained contains=TasksEnvVar
 syn match TaskOs      '/\zs.*\ze]' contained
