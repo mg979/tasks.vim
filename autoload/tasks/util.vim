@@ -66,6 +66,19 @@ function! s:Util.color(txt) abort
 endfunction
 
 
+""
+" No tasks available for current project/filetye.
+""
+function! s:Util.no_tasks(prj) abort
+    if empty(a:prj) || empty(a:prj.tasks)
+        echon self.badge() 'no tasks'
+        return v:true
+    endif
+    return v:false
+endfunction
+
+
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " vim: et sw=4 ts=4 sts=4 fdm=marker

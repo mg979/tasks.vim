@@ -51,6 +51,7 @@
 " Returns: the validated tasks for the parsed configuration file
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 function! tasks#parse#do(lines, local) abort
+    "{{{1
     if empty(a:lines)
         return {}
     endif
@@ -102,13 +103,14 @@ function! tasks#parse#do(lines, local) abort
     call filter(p.tasks, { k,v -> v.validate(p,k)})
     call s:update_prjname(p, a:local)
     return s:filter_tasks_by_os(p)
-endfunction
+endfunction "}}}
 
 
 ""
 " If the task is project-local, task tag must match the current one.
 ""
 function! s:get_tag(line) abort
+    "{{{1
     if a:line =~ s:tagpat
         let tag = matchstr(a:line, s:tagpat)
         if index(g:tasks['__known_tags__'], tag) < 0
@@ -117,7 +119,7 @@ function! s:get_tag(line) abort
         return tag
     endif
     return 'default'
-endfunction
+endfunction "}}}
 
 
 
@@ -125,8 +127,9 @@ endfunction
 " If the task is project-local, task tag must match the current one.
 ""
 function! s:wrong_tag(tag) abort
+    "{{{1
     return g:tasks['__tag__'] !=# a:tag
-endfunction
+endfunction "}}}
 
 
 
@@ -138,28 +141,31 @@ endfunction
 " Constructor for project/global configuration.
 ""
 function! s:new_config(local) abort
+    "{{{1
     let p = { 'tasks': {}, 'env': {'ROOT': expand(getcwd())} }
     if a:local
         call extend(p.env, {'PRJNAME': s:ut.basedir()})
         let p.info = { 'name': s:ut.basedir() }
     endif
     return p
-endfunction
+endfunction "}}}
 
 ""
 " Update the PRJNAME env variable to match the project's name.
 ""
 function! s:update_prjname(prj, local) abort
+    "{{{1
     if a:local
         let a:prj.env['PRJNAME'] = a:prj.info.name
     endif
-endfunction
+endfunction "}}}
 
 ""
 " Remove modifiers from task names, selecting the most appropriate for the
 " current OS.
 ""
 function! s:filter_tasks_by_os(prj) abort
+    "{{{1
     if s:v.is_wsl
         " if using WSL and the same task is also defined for Linux, prefer WSL
         " version.
@@ -183,7 +189,7 @@ function! s:filter_tasks_by_os(prj) abort
     endfor
     call extend(a:prj.tasks, renamed_tasks)
     return a:prj
-endfunction
+endfunction "}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -203,5 +209,4 @@ let s:v  = s:ut.Vars
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-" vim: et sw=4 ts=4 sts=4 fdm=indent fdn=1
+" vim: et sw=4 ts=4 sts=4 fdm=marker

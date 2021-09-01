@@ -73,11 +73,25 @@ function! tasks#global(reload) abort
 endfunction "}}}
 
 
-" TODO: :Project, :Compile commands
-" TODO: test environmental variables expansion
-" TODO: assign score to commands to see which one should be chosen
-" TODO: cwd, prjname
-" TODO: success/fail hooks
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Other public functions
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+function! tasks#expand_cmd(task, prj)
+    " Returns task command with expanded env variables and vim placeholders. {{{1
+    let cmd = async#expand(s:choose_command(a:task))
+    let args = get(a:task.fields, 'args', '')
+    let args = empty(args) ? '' : ' ' . async#expand(args)
+    return s:expand_builtin_envvars(cmd . args, a:prj, a:task.local)
+endfunction "}}}
+
+
+function! tasks#complete(A, C, P) abort
+    " Command line completion for tasks. {{{1
+    let valid = keys(get(tasks#get(), 'tasks', {}))
+    return filter(sort(valid), 'v:val=~#a:A')
+endfunction "}}}
 
 
 
@@ -96,7 +110,7 @@ function! tasks#run(args) abort
             let prj = tasks#get()
         endif
     endif
-    if s:no_tasks(prj)
+    if s:ut.no_tasks(prj)
         return
     endif
     let tasks = prj.tasks
@@ -236,15 +250,6 @@ function! s:get_cwd(prj, task) abort
 endfunction "}}}
 
 
-function! s:expand_task_cmd(task, prj)
-    " Returns task command with expanded env variables and vim placeholders. {{{1
-    let cmd = async#expand(s:choose_command(a:task))
-    let args = get(a:task.fields, 'args', '')
-    let args = empty(args) ? '' : ' ' . async#expand(args)
-    return s:expand_builtin_envvars(cmd . args, a:prj, a:task.local)
-endfunction "}}}
-
-
 function! s:expand_builtin_envvars(string, prj, expand_prjname) abort
     " Expand built-in variables $ROOT and $PRJNAME. {{{1
     let s = substitute(a:string, '\$ROOT\>', '\=expand(getcwd())', 'g')
@@ -281,205 +286,6 @@ function! s:get_opts(opts) abort
     endfor
     return opts
 endfunction "}}}
-
-
-function! tasks#complete(A, C, P) abort
-    " Command line completion for tasks. {{{1
-    let valid = keys(get(tasks#get(), 'tasks', {}))
-    return filter(sort(valid), 'v:val=~#a:A')
-endfunction "}}}
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" List tasks
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-function! tasks#list(as_json) abort
-    " Display tasks in the command line, or in json format. {{{1
-    let prj = tasks#get(1)
-    if s:no_tasks(prj)
-        return
-    endif
-    if a:as_json
-        call s:tasks_as_json(prj)
-        return
-    endif
-    call s:cmdline_bar(prj)
-    echohl Comment
-    echo "Task\t\t\t\tTag\t\tOutput\t\tCommand"
-    for t in sort(keys(prj.tasks))
-        let T = prj.tasks[t]
-        ""
-        " --------------------------- [ task name ] ---------------------------
-        ""
-        echohl Constant
-        echo t . repeat(' ', 32 - strlen(t))
-        ""
-        " --------------------------- [ task tag ] ----------------------------
-        ""
-        echohl String
-        let p = T.tag == 'default'
-                    \ ? T.local ? 'project' : 'global'
-                    \ : T.tag
-        echon p . repeat(' ', 16 - strlen(p))
-        ""
-        " -------------------------- [ output type ] --------------------------
-        ""
-        echohl PreProc
-        let out = split(get(T.fields, 'output', 'quickfix'), ':')[0]
-        echon out . repeat(' ', 16 - strlen(out))
-        ""
-        " ------------------------- [ task command ] -------------------------
-        ""
-        echohl None
-        let cmd = s:expand_task_cmd(T, prj)
-        let n = &columns - 66 < strlen(cmd) ? '' : 'n'
-        exe 'echo' . n string(cmd)
-    endfor
-    echohl None
-endfunction "}}}
-
-
-function! s:cmdline_bar(prj) abort
-    " Top bar for command-line tasks list. {{{1
-    echohl QuickFixLine
-    let header = has_key(a:prj, 'info') ?
-                \'Project: '. a:prj.info.name : 'Global tasks'
-    let right   = repeat(' ', &columns - 10 - strlen(header))
-    echon '      ' . header . '   ' . right
-endfunction "}}}
-
-
-function! s:tasks_as_json(prj) abort
-    " Display tasks in a buffer, in json format. {{{1
-    let py =        executable('python3') ? 'python3'
-                \ : executable('python')  ? 'python' : ''
-    if py == ''
-        echon s:ut.badge() 'no python executable found in $PATH'
-        return
-    endif
-    let [ft, f] = [&ft, @%]
-    let json = json_encode(a:prj)
-    vnew +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
-    silent! XTabNameBuffer Tasks
-    wincmd H
-    put =json
-    1d _
-    exe '%!' . py . ' -m json.tool'
-    setfiletype json
-    let &l:statusline = '%#PmenuSel# Tasks %#Pmenu# ft=' .
-                \       ft . ' %#Statusline# ' . f
-endfunction "}}}
-
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Choose task with mapping
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-""
-" Choose among available tasks (called with mapping).
-" @param ...: prompt for extra args
-""
-function! tasks#choose(...) abort
-    "{{{1
-    let prj = tasks#get(1)
-    if s:no_tasks(prj)
-        return
-    endif
-    let use_F = get(g:, 'tasks_mapping_use_Fn_keys', 6)
-    if use_F && len(keys(prj.tasks)) == 1
-        let f = substitute("\<F6>", '6$', use_F, '')
-        let Keys = { 1: f}
-        let l:PnKey = { c -> '<F'. use_F .'>' . "\t"}
-    elseif use_F && len(keys(prj.tasks)) <= 8
-        let Keys = { 1: "\<F5>", 2: "\<F6>", 3: "\<F7>", 4: "\<F8>",
-                    \5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
-        let l:PnKey = { c -> '<F'.(c+4).'>' . "\t"}
-    elseif use_F && len(keys(prj.tasks)) <= 12
-        let Keys = { 1: "\<F1>", 2: "\<F2>", 3: "\<F3>", 4: "\<F4>",
-                    \5: "\<F5>", 6: "\<F6>", 7: "\<F7>", 8: "\<F8>",
-                    \9: "\<F9>", 10: "\<F10>", 11: "\<F11>", 12: "\<F12>"}
-        let l:PnKey = { c -> '<F'.c.'>' . "\t"}
-    else
-        let Keys = {}
-        for i in range(1, 26)
-            let Keys[i] = nr2char(96 + i)
-        endfor
-        let l:PnKey = { c -> Keys[c] . "\t"}
-    endif
-    let dict = {}
-    let i = 1
-    call s:cmdline_bar(prj)
-    echohl Comment
-    echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
-    for t in sort(keys(prj.tasks))
-        let T = prj.tasks[t]
-        if has_key(T.fields, 'mapping')
-            let Keys[i] = T.fields.mapping
-            let map = T.fields.mapping ."\t"
-        else
-            let map = l:PnKey(i)
-        endif
-        let dict[Keys[i]] = t
-        ""
-        " ---------------------------- [ mapping ] ----------------------------
-        ""
-        echohl Special
-        echo map
-        ""
-        " --------------------------- [ task name ] ---------------------------
-        ""
-        echohl Constant
-        echon t . repeat(' ', 32 - strlen(t))
-        ""
-        " --------------------------- [ task tag ] ----------------------------
-        ""
-        echohl String
-        let p = T.tag == 'default'
-                    \ ? T.local ? 'project' : 'global'
-                    \ : T.tag
-        echon p . repeat(' ', 16 - strlen(p))
-        ""
-        " -------------------------- [ output type ] --------------------------
-        ""
-        echohl PreProc
-        let out = split(get(T.fields, 'output', 'quickfix'), ':')[0]
-        echon out . repeat(' ', 16 - strlen(out))
-        ""
-        " ------------------------- [ task command ] -------------------------
-        ""
-        echohl None
-        let cmd = s:expand_task_cmd(T, prj)
-        if &columns - 84 < strlen(cmd)
-            let cmd = cmd[:(&columns - 84)] . '…'
-        endif
-        echon cmd
-        let i += 1
-    endfor
-    echo ''
-    let ch = getchar()
-    let ch = ch > 0 ? nr2char(ch) : ch
-    if index(keys(dict), ch) >= 0
-        if a:0
-            redraw
-            echohl Delimiter  | echo 'Command: ' | echohl None
-            echon s:expand_task_cmd(prj.tasks[dict[ch]], prj)
-            let args = input('args: ')
-            if empty(args) && confirm('Run with no arguments?', "&Yes\n&No") != 1
-                redraw
-                echo 'Canceled'
-                return
-            endif
-        else
-            let args = ''
-        endif
-        exe 'Task' dict[ch] args
-    else
-        redraw
-    endif
-endfunction "}}}
-
 
 
 
@@ -523,16 +329,6 @@ endfunction "}}}
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Helpers
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-
-function! s:no_tasks(prj) abort
-    " No tasks available for current project/filetye. {{{1
-    if empty(a:prj) || empty(a:prj.tasks)
-        echon s:ut.badge() 'no tasks'
-        return v:true
-    endif
-    return v:false
-endfunction "}}}
 
 
 function! s:find_root() abort
