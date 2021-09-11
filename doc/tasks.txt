@@ -528,13 +528,13 @@ COMMANDS                                                      *tasks-commands*
 
  Command       Args  Bang  Description~
 -----------------------------------------------------
- Task          1     0     run a task
+ Task          1     1     run a task
  Tasks         0     1     list tasks
  TasksProfile  ?     1     echo/switch/reset profile
 
 
                                                                     *:Task*  >
-    :Task task-name [ARGS]
+    :Task[!] task-name [ARGS]
 
 
 This is the command that starts a task. The first argument is the name of the
@@ -544,6 +544,8 @@ for the command of the task.
 You can complete available tasks for the current buffer with Tab on
 the command line.
 
+If there are no tasks, or the given task is invalid, an error will be issued,
+unless the command is run with <bang>.
 
                                                                    *:Tasks*  >
     :Tasks[!]

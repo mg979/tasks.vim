@@ -101,7 +101,7 @@ endfunction "}}}
 " Run task
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-function! tasks#run(args) abort
+function! tasks#run(args, ...) abort
     " Main command to run a task. Will call async#cmd. {{{1
     redraw
     let prj = tasks#get()
@@ -113,6 +113,10 @@ function! tasks#run(args) abort
         endif
     endif
     if s:ut.no_tasks(prj)
+        if !a:0 || !a:1
+            redraw
+            throw '[vim-tasks] not a valid task'
+        endif
         return
     endif
     let tasks = prj.tasks
@@ -120,7 +124,11 @@ function! tasks#run(args) abort
     let name = a[0]
 
     if !has_key(tasks, name)
-        echon s:ut.badge() 'not a valid task'
+        if !a:0 || !a:1
+            throw '[vim-tasks] not a valid task'
+        else
+            echon s:ut.badge() 'not a valid task'
+        endif
         return
     endif
 
