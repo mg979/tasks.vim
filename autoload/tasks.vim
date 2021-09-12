@@ -151,6 +151,9 @@ function! tasks#run(args, ...) abort
                 \ 'grepformat': get(task.fields, 'grepformat', s:bvar('&grepformat')),
                 \ 'compiler': get(task.fields, 'compiler', ''),
                 \ 'ft': get(task.fields, 'syntax', ''),
+                \ 'unlisted': task.unlisted,
+                \ 'discard': task.discard,
+                \ 'hidden': task.hidden,
                 \}, opts)
     let jobopts = {
                 \ 'env': prj.env,

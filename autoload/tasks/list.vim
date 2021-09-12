@@ -73,13 +73,17 @@ function! tasks#list#choose(...) abort
     if s:ut.no_tasks(prj)
         return
     endif
+    let available = s:available_tasks(prj)
+    if empty(available)
+        return
+    endif
     let Keys = s:get_keys(prj)
     let dict = {}
     let i = 1
     call s:cmdline_bar(prj)
     echohl Comment
     echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
-    for t in sort(keys(prj.tasks))
+    for t in available
         let T = prj.tasks[t]
         if has_key(T.fields, 'mapping')
             let Keys[i] = T.fields.mapping
@@ -164,6 +168,16 @@ let s:Fnk = { 1: "\<F1>", 2: "\<F2>",   3: "\<F3>",   4: "\<F4>",
 let s:Fn5 = { 1: "\<F5>", 2: "\<F6>",  3: "\<F7>",  4: "\<F8>",
             \ 5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
 
+
+function! s:available_tasks(prj)
+    let available = filter(sort(keys(a:prj.tasks)),
+                \          '!get(a:prj.tasks[v:val], "hidden", v:false) &&
+                \           !get(a:prj.tasks[v:val], "unmapped", v:false)')
+    if empty(available)
+        echon s:ut.badge() 'no tasks'
+    endif
+    return available
+endfunction
 
 function! s:cmdline_bar(prj) abort
     " Top bar for command-line tasks list. {{{1

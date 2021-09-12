@@ -195,6 +195,9 @@ fun! s:list_finished_jobs() abort
   echohl None
   let J = g:async_finished_jobs
   for id in sort(keys(J))
+    if get(J[id], 'unlisted', v:false) || get(J[id], 'hidden', v:false)
+      continue
+    endif
     let limit = &columns - 4 - 9 - 8 - 5
     let cmd = async#expand(J[id].cmd)
     echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, cmd)
@@ -509,7 +512,9 @@ fun! async#finish(exit_cb, job, status, ...) abort
     unlet job.out
     unlet job.err
   endif
-  let g:async_finished_jobs[job.id] = job
+  if !get(job, 'discard', v:false) || get(J[id], 'hidden', v:false)
+    let g:async_finished_jobs[job.id] = job
+  endif
 endfun "}}}
 
 
@@ -541,6 +546,9 @@ endfun "}}}
 "  'errfile'     file where to write err      default: ''
 "  'noquit'      when quitting vim            default: 0
 "  'noenv'       don't set env variables      default: 0
+"  'discard'     don't store in global var    default: 0
+"  'unlisted'    don't list in Jobs!          default: 0
+"  'hidden'      both of the above            default: 0
 fun! s:default_opts()
   return {
         \ 'makeprg': s:bufvar('&makeprg'),
@@ -563,6 +571,9 @@ fun! s:default_opts()
         \ 'errfile': '',
         \ 'noquit': 0,
         \ 'noenv': 0,
+        \ 'discard': 0,
+        \ 'unlisted': 0,
+        \ 'hidden': 0,
         \}
 endfun
 

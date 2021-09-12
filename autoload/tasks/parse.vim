@@ -76,22 +76,27 @@ function! tasks#parse#do(lines, local) abort
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
             " before creating a task, we check its tag, or we could overwrite
             " a valid task with one with the same name, if the tag is wrong,
-            " ignore the section's fields. We also check for the 'always' tag.
+            " ignore the section's fields. We also check the special tags.
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-            let always = a:local || line =~ '\s\+@always\>'
-            if always
-                let line = substitute(line, '\s\+@always\>', '', 'g')
-            endif
+            let [always,   line] = s:is_tag('always', line, a:local)
+            let [unlisted, line] = s:is_tag('unlisted', line)
+            let [discard,  line] = s:is_tag('discard', line)
+            let [unmapped, line] = s:is_tag('unmapped', line)
+            let [hidden,   line] = s:is_tag('hidden', line)
+
             let tag = s:get_tag(line)
             if s:wrong_tag(tag)
                 let current = v:null
                 continue
             endif
+
             let current = l:NewSection(matchstr(line, s:tasksect))
             let current.tag = tag
-            if !a:local
-                let current.always = always
-            endif
+            let current.always   = always
+            let current.unlisted = unlisted
+            let current.discard  = discard
+            let current.unmapped = unmapped
+            let current.hidden   = hidden
 
         elseif current isnot v:null
             for pat in values(current.patterns)
@@ -108,6 +113,17 @@ function! tasks#parse#do(lines, local) abort
     return s:filter_tasks_by_os(p)
 endfunction "}}}
 
+""
+" Handle special tags.
+""
+fun! s:is_tag(tag, line, ...)
+    "{{{1
+    if a:line =~ '\s\+@'. a:tag . '\>' || a:0 && a:1
+        return [ v:true, substitute(a:line, '\s\+@'. a:tag . '\>', '', 'g') ]
+    else
+        return [ v:false, a:line ]
+    endif
+endfun "}}}
 
 ""
 " If the task is project-local, task tag must match the current one.

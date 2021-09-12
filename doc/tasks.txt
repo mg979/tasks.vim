@@ -259,15 +259,41 @@ If two tasks have the same name, but different tags, the ones with a tag that
 doesn't match the current profile will be skipped.
 
 This offers a way to filter available tasks, based on what you're actually
-doing. So if for example a task has the debug tag, it will only be a valid
-task when the current profile is set to debug.
+doing. So if for example a task has the `@debug` tag, it will only be a valid
+task when the current profile is set to 'debug'.
 
-A special tag is `@always`: it should be used in global tasks, if you want them
+Special tags ~
+
+Special tags are special because they can coexist with any another tag.
+Otherwise only a profile tag per task is allowed.
+
+  `@always`     task is valid also when project config exists
+  `@unlisted`   task will not be listed in |:Jobs!| output
+  `@discard`    task will not even be stored in |g:async_finished_jobs|
+  `@unmapped`   task will not have a mapping with the Tasks-Choose <Plug>
+  `@hidden`     at the same time `@discarded`, `@unlisted` and `@unmapped`
+
+About the `@always` tag: it should be used in global tasks, if you want them
 to appear also when a local configuration is present, because as mentioned
 before, global tasks are ignored by default when a local configuration is
-loaded. This tag is also special because it can coexist with another tag.
-Otherwise only a tag per task is allowed.
+loaded. A project task with the same name will still override it.
 
+About the `@hidden` tag: they will still show up with the |:Tasks| command.
+
+Why would you want to `@discard` or make a tag `@unlisted`? Commands that run
+automatically in the background would fill the list and consume memory if
+stored. For example if you have:
+>
+  autocmd BufWritePost * Task update-tags
+
+and then a task:
+>
+  [update-tags] @always @discard
+  command/Linux=[ -e tags ] && [ $(ls -lH tags | cut -d' ' -f5) -lt 200000 ] && ctags -R || exit 1
+  output=headless
+
+this task would be run every time you write a buffer. You'll likely not be
+interested in storing anything related to this task.
 
 
 ------------------------------------------------------------------------------
