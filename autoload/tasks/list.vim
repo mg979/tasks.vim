@@ -77,7 +77,7 @@ function! tasks#list#choose(...) abort
     if empty(available)
         return
     endif
-    let Keys = s:get_keys(prj)
+    let Keys = s:get_keys(prj, len(available))
     let dict = {}
     let i = 1
     call s:cmdline_bar(prj)
@@ -212,8 +212,8 @@ function! s:tasks_as_json(prj) abort
 endfunction "}}}
 
 
-function! s:get_keys(prj)
-    let n = len(keys(a:prj.tasks))
+function! s:get_keys(prj, available)
+    let n = a:available
     let F6 = has_key(a:prj.info, 'options') && a:prj.info.options =~ '\<f6key\>'
     let Fn = has_key(a:prj.info, 'options') && a:prj.info.options =~ '\<fnkeys\>'
 
