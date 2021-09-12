@@ -4,6 +4,7 @@ endif
 let b:did_ftplugin = 1
 
 set commentstring=;\ %s
+set formatoptions-=t
 
 au BufWritePost <buffer> call tasks#get(1)
 
