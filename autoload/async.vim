@@ -306,12 +306,14 @@ fun! s:cb_quickfix(job) abort
   endif
 
   " bufnr is needed to see if it has jumped to the first error
+  " appending prevents to use the nojump option, must be handled later
   let prevbuf = bufnr()
-  let prevlist = a:job.locl ? empty(getloclist(a:job.winid)) : empty(getqflist())
+  let prevlist = a:job.locl ? !empty(getloclist(a:job.winid)) : !empty(getqflist())
+  let appending = a:job.append && prevlist
 
   " cexpr command to fill the qfix/location list
   let cxpr =  a:job.locl ? 'l' : 'c'
-  let cxpr .= a:job.append && !prevlist ? 'add' : a:job.nojump ? 'get' : ''
+  let cxpr .= appending ? 'add' : a:job.nojump ? 'get' : ''
   let cxpr .= 'expr'
 
   exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
@@ -331,7 +333,7 @@ fun! s:cb_quickfix(job) abort
   " empty list and status > 0 indicates some failure, maybe a wrong command
   let nolist  = job.locl ? empty(getloclist(job.winid)) : empty(getqflist())
   let failure = status && nolist
-  let canjump = job.append && !prevlist || !job.nojump
+  let canjump = appending || !job.nojump
   let canopen = v:true
 
   " at this point the first error/match has been already jump to
