@@ -311,7 +311,7 @@ fun! s:cb_quickfix(job) abort
   let cxpr .= 'expr'
   exe cxpr 'job.out + job.err'
   if job.locl
-    call setloclist(0, [], 'r', {'title': job.title})
+    call setloclist(job.winid, [], 'r', {'title': job.title})
   else
     call setqflist([], 'r', {'title': job.title})
   endif
@@ -524,6 +524,10 @@ endfun "}}}
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Default user options {{{1
+"
+"  Also include the id of the current window and the buffer number, they can be
+"  used by the job, even though they're not 'options'.
+"
 "  'makeprg'     makeprg                      default: &makeprg (local preferred)
 "  'grepprg'     grepprg                      default: &grepprg (local preferred)
 "  'errorformat' errorformat                  default: &errorformat (local preferred)
@@ -548,8 +552,12 @@ endfun "}}}
 "  'discard'     don't store in global var    default: 0
 "  'unlisted'    don't list in Jobs!          default: 0
 "  'hidden'      both of the above            default: 0
+
 fun! s:default_opts()
   return {
+        \ 'winid': win_getid(),
+        \ 'bufnr': bufnr(),
+        \
         \ 'makeprg': s:bufvar('&makeprg'),
         \ 'grepprg': s:bufvar('&grepprg'),
         \ 'errorformat': s:bufvar('&errorformat'),
