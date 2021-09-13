@@ -305,11 +305,18 @@ fun! s:cb_quickfix(job) abort
     lcd `=a:job.opts.cwd`
   endif
 
-  exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
-  let cxpr =  job.locl ? 'l' : 'c'
-  let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
+  " bufnr is needed to see if it has jumped to the first error
+  let prevbuf = bufnr()
+  let prevlist = a:job.locl ? empty(getloclist(a:job.winid)) : empty(getqflist())
+
+  " cexpr command to fill the qfix/location list
+  let cxpr =  a:job.locl ? 'l' : 'c'
+  let cxpr .= a:job.append && !prevlist ? 'add' : a:job.nojump ? 'get' : ''
   let cxpr .= 'expr'
+
+  exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
   exe cxpr 'job.out + job.err'
+
   if job.locl
     call setloclist(job.winid, [], 'r', {'title': job.title})
   else
@@ -322,14 +329,34 @@ fun! s:cb_quickfix(job) abort
   let &errorformat = gvar
 
   " empty list and status > 0 indicates some failure, maybe a wrong command
-  let failure = status && (job.locl ? empty(getloclist(1)) : empty(getqflist()))
+  let nolist  = job.locl ? empty(getloclist(job.winid)) : empty(getqflist())
+  let failure = status && nolist
+  let canjump = job.append && !prevlist || !job.nojump
+  let canopen = v:true
+
+  " at this point the first error/match has been already jump to
+  if !nolist && canjump
+    if job.nojump && bufnr() != prevbuf
+      exe 'buffer' prevbuf
+    endif
+    if job.locl && !s:correct_window_for_jump(job)
+      if bufnr() != prevbuf
+        exe 'buffer' prevbuf
+      endif
+      if s:user_wants_to_go_to_finished_job()
+        call s:jump_to_window(job)
+      else
+        let canopen = v:false
+      endif
+    endif
+  endif
 
   if job.grep
     if status > 1 || status == 1 && !empty(job.err)
       call s:echo([job.title] + job.err, 'WarningMsg')
     elseif status == 1
       echo 'No results'
-    elseif job.openqf
+    elseif job.openqf && canopen
       call s:open_qfix(job)
     else
       echo 'Found' (len(job.out) + len(job.err)) 'matches'
@@ -342,12 +369,44 @@ fun! s:cb_quickfix(job) abort
     call s:echo(['Exit status: '. status, 'Command: '. job.title]
           \ + job.out + job.err, 'WarningMsg')
 
-  elseif job.openqf
+  elseif job.openqf && canopen
     call s:open_qfix(job)
 
   elseif job.nojump
     call s:echo(['Exit status: '. status, 'Command: '. job.title], 'WarningMsg')
   endif
+endfun
+
+""
+" Ask the user to go to the window with the location list.
+""
+fun! s:user_wants_to_go_to_finished_job()
+  return confirm('A job has finished, do you want to be brought there?', "&Yes\n&No") == 1
+endfun
+
+""
+" Go to the right window in the right tabpage.
+""
+fun! s:jump_to_window(job)
+  let [prevtn, prevwn] = [tabpagenr(), winnr()]
+  let [tn, wn]         = win_id2tabwin(a:job.winid)
+
+  if prevtn != tn
+    exe 'normal!' tn . 'gt'
+  endif
+  if winnr() != wn
+    exe wn . 'wincmd w'
+  endif
+endfun
+
+""
+" If we should jump to the first match and using location list, the command may
+" have taken long enough that we are in a different window in this case go to
+" the right window, then come back.
+""
+fun! s:correct_window_for_jump(job)
+  let [tn, wn] = win_id2tabwin(a:job.winid)
+  return tn == tabpagenr() && wn == winnr()
 endfun
 
 ""
