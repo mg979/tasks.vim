@@ -387,8 +387,7 @@ fun! s:cb_quickfix(job) abort
 endfun
 
 ""
-" Create a new scratch window with a local cwd, so that make errors have the
-" right paths.
+" Create a new scratch window with a local cwd. {{{2
 ""
 fun! s:lcd_in_new_win(wd)
   new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
@@ -396,14 +395,14 @@ fun! s:lcd_in_new_win(wd)
 endfun
 
 ""
-" Ask the user to go to the window with the location list.
+" Ask the user to go to the window with the location list. {{{2
 ""
 fun! s:user_wants_to_go_to_finished_job()
   return confirm('A job has finished, do you want to be brought there?', "&Yes\n&No") == 1
 endfun
 
 ""
-" Go to the right window in the right tabpage.
+" Go to the right window in the right tabpage. {{{2
 ""
 fun! s:jump_to_window(job)
   let [prevtn, prevwn] = [tabpagenr(), winnr()]
@@ -418,6 +417,7 @@ fun! s:jump_to_window(job)
 endfun
 
 ""
+" Current window is the same of the location list? {{{2
 " If we should jump to the first match and using location list, the command may
 " have taken long enough that we are in a different window in this case go to
 " the right window, then come back.
@@ -428,7 +428,7 @@ fun! s:correct_window_for_jump(job)
 endfun
 
 ""
-" Open quickfix or location list when openqf option is set.
+" Open quickfix or location list when openqf option is set. {{{2
 ""
 fun! s:open_qfix(job)
   silent redraw!
@@ -436,7 +436,8 @@ fun! s:open_qfix(job)
   if !a:job.focus
     wincmd p
   endif
-endfun "}}}
+endfun "}}}}}}
+
 
 ""=============================================================================
 " Function: s:cb_cmdline
