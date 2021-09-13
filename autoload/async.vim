@@ -497,6 +497,11 @@ endfun "}}}
 ""=============================================================================
 fun! async#finish(exit_cb, job, status, ...) abort
   "{{{1
+  if mode(1) !=# 'n'
+    call timer_start(1000, { t -> async#finish(a:exit_cb, a:job, a:status) })
+    return
+  endif
+
   let job = s:no_trailing_blanks(async#remove_job(a:job))
   let job.status = a:status
   let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
