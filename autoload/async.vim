@@ -298,11 +298,18 @@ fun! s:cb_quickfix(job) abort
   setlocal errorformat=
   let &errorformat = job.grep ? job.grepformat : job.errorformat
 
-  " if a custom directory has been set, we must lcd into it else the qfix will
-  " point to wrong paths; do this in a new window, though
-  if !job.grep && status && has_key(a:job.opts, 'cwd') && a:job.opts.cwd != getcwd()
-    new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
-    lcd `=a:job.opts.cwd`
+  " if make had errors and directory changed, we must lcd into it else the qfix
+  " will point to wrong paths; do this in a new window, though
+  " we will also force jumping to error, otherwise the window stays empty
+  let makerr = !job.grep && status
+
+  if makerr && get(a:job.opts, 'cwd', '') != getcwd()
+    call s:lcd_in_new_win(a:job.opts.cwd)
+    let job.nojump = 0
+
+  elseif makerr && a:job.wd != getcwd()
+    call s:lcd_in_new_win(a:job.wd)
+    let job.nojump = 0
   endif
 
   " bufnr is needed to see if it has jumped to the first error
@@ -377,6 +384,15 @@ fun! s:cb_quickfix(job) abort
   elseif job.nojump
     call s:echo(['Exit status: '. status, 'Command: '. job.title], 'WarningMsg')
   endif
+endfun
+
+""
+" Create a new scratch window with a local cwd, so that make errors have the
+" right paths.
+""
+fun! s:lcd_in_new_win(wd)
+  new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
+  lcd `=a:wd`
 endfun
 
 ""
@@ -591,8 +607,8 @@ endfun "}}}
 
 " Default user options {{{1
 "
-"  Also include the id of the current window and the buffer number, they can be
-"  used by the job, even though they're not 'options'.
+"  Also include the current winid, buffer number and cwd, they can be used by
+"  the job, even though they're not 'options'.
 "
 "  'makeprg'     makeprg                      default: &makeprg (local preferred)
 "  'grepprg'     grepprg                      default: &grepprg (local preferred)
@@ -623,6 +639,7 @@ fun! s:default_opts()
   return {
         \ 'winid': win_getid(),
         \ 'bufnr': bufnr(),
+        \ 'wd': getcwd(),
         \
         \ 'makeprg': s:bufvar('&makeprg'),
         \ 'grepprg': s:bufvar('&grepprg'),
