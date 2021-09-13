@@ -65,7 +65,7 @@ fun! async#cmd(cmd, mode, ...) abort
     let s:id += 1
     let g:async_jobs[s:id] = extend({
           \ 'job': job, 'cmd': cmd, 'opts': opts,
-          \ 'id': s:id, 'pid': s:pid(job), 'title': a:cmd,
+          \ 'id': s:id, 'pid': s:pid(job), 'title': expanded,
           \ 'status': 'running', 'out': [], 'err': [],
           \}, useropts)
     return s:id
@@ -164,7 +164,7 @@ fun! async#list(finished) abort
     try
       let J = g:async_jobs[id]
       let pid = has('nvim') ? jobpid(str2nr(J.job)) : job_info(J.job).process
-      call add(jobs, printf('%-4s%-9s%-8s%-'.limit.'s', id, pid, J.status, J.cmd))
+      call add(jobs, printf('%-4s%-9s%-8s%-'.limit.'s', id, pid, J.status, J.title))
     catch
       call async#remove_job(J.job)
     endtry
@@ -199,8 +199,8 @@ fun! s:list_finished_jobs() abort
       continue
     endif
     let limit = &columns - 4 - 9 - 8 - 5
-    let cmd = async#expand(J[id].cmd)
-    echo printf('%-4s%-9s%-8s%-'.limit.'s', id, J[id].pid, J[id].status, cmd)
+    echo printf('%-4s%-9s%-8s%-'.limit.'s',
+          \     id, J[id].pid, J[id].status, J[id].title)
   endfor
   if s:py != ''
     let id = s:prompt_id(1)
@@ -310,11 +310,10 @@ fun! s:cb_quickfix(job) abort
   let cxpr .= job.append ? 'add' : job.nojump ? 'get' : ''
   let cxpr .= 'expr'
   exe cxpr 'job.out + job.err'
-  let job.cmd = type(job.cmd) == v:t_string ? job.cmd : join(job.cmd)
   if job.locl
-    call setloclist(0, [], 'r', {'title': job.cmd})
+    call setloclist(0, [], 'r', {'title': job.title})
   else
-    call setqflist([], 'r', {'title': job.cmd})
+    call setqflist([], 'r', {'title': job.title})
   endif
   exe 'silent doautocmd QuickFixCmdPost' job.qfautocmd
 
@@ -327,7 +326,7 @@ fun! s:cb_quickfix(job) abort
 
   if job.grep
     if status > 1 || status == 1 && !empty(job.err)
-      call s:echo([job.cmd] + job.err, 'WarningMsg')
+      call s:echo([job.title] + job.err, 'WarningMsg')
     elseif status == 1
       echo 'No results'
     elseif job.openqf
@@ -337,17 +336,17 @@ fun! s:cb_quickfix(job) abort
     endif
 
   elseif !status && empty(job.err)
-    echo "Success:" job.cmd
+    echo "Success:" job.title
 
   elseif failure
-    call s:echo(['Exit status: '. status, 'Command: '. job.cmd]
+    call s:echo(['Exit status: '. status, 'Command: '. job.title]
           \ + job.out + job.err, 'WarningMsg')
 
   elseif job.openqf
     call s:open_qfix(job)
 
   elseif job.nojump
-    call s:echo(['Exit status: '. status, 'Command: '. job.cmd], 'WarningMsg')
+    call s:echo(['Exit status: '. status, 'Command: '. job.title], 'WarningMsg')
   endif
 endfun
 
