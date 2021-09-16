@@ -314,7 +314,7 @@ fun! s:cb_quickfix(job) abort
 
   " bufnr is needed to see if it has jumped to the first error
   " appending prevents to use the nojump option, must be handled later
-  let prevbuf = bufnr()
+  let prevbuf = bufnr('')
   let prevlist = a:job.locl ? !empty(getloclist(a:job.winid)) : !empty(getqflist())
   let appending = a:job.append && prevlist
 
@@ -345,11 +345,11 @@ fun! s:cb_quickfix(job) abort
 
   " at this point the first error/match has been already jump to
   if !nolist && canjump
-    if job.nojump && bufnr() != prevbuf
+    if job.nojump && bufnr('') != prevbuf
       exe 'buffer' prevbuf
     endif
     if job.locl && !s:correct_window_for_jump(job)
-      if bufnr() != prevbuf
+      if bufnr('') != prevbuf
         exe 'buffer' prevbuf
       endif
       if s:user_wants_to_go_to_finished_job()
@@ -639,7 +639,7 @@ endfun "}}}
 fun! s:default_opts()
   return {
         \ 'winid': win_getid(),
-        \ 'bufnr': bufnr(),
+        \ 'bufnr': bufnr(''),
         \ 'wd': getcwd(),
         \
         \ 'makeprg': s:bufvar('&makeprg'),
