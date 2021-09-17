@@ -224,12 +224,12 @@ function! s:get_keys(prj, available)
 
     elseif F6 && n <= 8
 
-        let keys = s:Fn5
+        let keys = copy(s:Fn5)
         let s:get_key = { k,c -> '<F'.(c+4).'>' . "\t"}
 
     elseif (Fn || F6) && n <= 12
 
-        let keys = s:Fnk
+        let keys = copy(s:Fnk)
         let s:get_key = { k,c -> '<F'.c.'>' . "\t"}
 
     else
