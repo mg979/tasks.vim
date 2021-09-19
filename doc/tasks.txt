@@ -310,18 +310,18 @@ a command field is required, the rest is optional.
 
 Legal task fields are:
 
-  `command`      command to run                       *tasks-field-command*
-  `cwd`          working directory                    *tasks-field-cwd*
-  `output`       output mode                          *tasks-field-output*
-  `args`         command arguments                    *tasks-field-args*
-  `compiler`     any valid compiler                   *tasks-field-compiler*
-  `syntax`       for buffer output                    *tasks-field-syntax*
-  `options`      job options as passed to job_start() *tasks-field-options*
-  `errorformat`  as vim option                        *tasks-field-errorformat*
-  `grepformat`   as vim option                        *tasks-field-grepformat*
-  `outfile`      path for the stdout log              *tasks-field-outfile*
-  `errfile`      path for the stderr log              *tasks-field-errfile*
-  `mapping`      mapping for plug                     *tasks-field-mapping*
+  `command`      command to run                       |tasks-field-command|
+  `cwd`          working directory                    |tasks-field-cwd|
+  `output`       output mode                          |tasks-field-output|
+  `args`         command arguments                    |tasks-field-args|
+  `compiler`     any valid compiler                   |tasks-field-compiler|
+  `syntax`       for buffer output                    |tasks-field-syntax|
+  `options`      job options as passed to job_start() |tasks-field-options|
+  `errorformat`  as vim option                        |tasks-field-errorformat|
+  `grepformat`   as vim option                        |tasks-field-grepformat|
+  `outfile`      path for the stdout log              |tasks-field-outfile|
+  `errfile`      path for the stderr log              |tasks-field-errfile|
+  `mapping`      mapping for plug                     |tasks-field-mapping|
 
 
 
