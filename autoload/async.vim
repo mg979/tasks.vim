@@ -400,7 +400,13 @@ endfun
 " Ask the user to go to the window with the location list. {{{2
 ""
 fun! s:user_wants_to_go_to_finished_job()
-  return confirm('A job has finished, do you want to be brought there?', "&Yes\n&No") == 1
+  let opt = get(g:, 'async_prompt_to_go_to_loclist', 'ask')
+  if opt == 'ask'
+    return confirm('A job has finished, do you want to be brought there?', "&Yes\n&No") == 1
+  elseif opt == 'echo'
+    echo 'A job has been finished in another window'
+  endif
+  return v:false
 endfun
 
 ""
