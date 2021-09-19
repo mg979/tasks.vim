@@ -301,15 +301,17 @@ fun! s:cb_quickfix(job) abort
   " if make had errors and directory changed, we must lcd into it else the qfix
   " will point to wrong paths; do this in a new window, though
   " we will also force jumping to error, otherwise the window stays empty
-  let makerr = !job.grep && status
+  let [makerr, has_lcd] = [!job.grep && status, v:false]
 
   if makerr && has_key(a:job.opts, 'cwd') && a:job.opts.cwd != getcwd()
     call s:lcd_in_new_win(a:job.opts.cwd)
     let job.nojump = 0
+    let has_lcd = v:true
 
   elseif makerr && a:job.wd != getcwd()
     call s:lcd_in_new_win(a:job.wd)
     let job.nojump = 0
+    let has_lcd = v:true
   endif
 
   " bufnr is needed to see if it has jumped to the first error
@@ -344,7 +346,7 @@ fun! s:cb_quickfix(job) abort
   let canopen = v:true
 
   " at this point the first error/match has been already jump to
-  if !nolist && canjump
+  if !nolist && canjump && !has_lcd
     if job.nojump && bufnr('') != prevbuf
       exe 'buffer' prevbuf
     endif
