@@ -303,7 +303,7 @@ fun! s:cb_quickfix(job) abort
   " we will also force jumping to error, otherwise the window stays empty
   let makerr = !job.grep && status
 
-  if makerr && get(a:job.opts, 'cwd', '') != getcwd()
+  if makerr && has_key(a:job.opts, 'cwd') && a:job.opts.cwd != getcwd()
     call s:lcd_in_new_win(a:job.opts.cwd)
     let job.nojump = 0
 
