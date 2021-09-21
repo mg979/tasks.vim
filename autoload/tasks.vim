@@ -52,7 +52,7 @@ function! tasks#project(reload) abort
     if !a:reload && has_key(g:tasks, prj)
         return g:tasks[prj]
     endif
-    let f = s:get_local_ini()
+    let f = s:ut.local_ini()
     if !filereadable(f)
         return {}
     endif
@@ -66,7 +66,7 @@ function! tasks#global(reload) abort
     if !a:reload && has_key(g:tasks, 'global')
         return g:tasks.global
     endif
-    let f = s:get_global_ini()
+    let f = s:ut.global_ini()
     if !filereadable(f)
         return {}
     endif
@@ -106,8 +106,8 @@ function! tasks#run(args, ...) abort
     redraw
     let prj = tasks#get()
     if empty(prj)
-        let root = s:find_root()
-        if s:change_root(root)
+        let root = s:ut.find_root()
+        if s:ut.change_root(root)
             lcd `=root`
             let prj = tasks#get()
         endif
@@ -299,75 +299,6 @@ function! s:get_opts(opts) abort
     endfor
     return opts
 endfunction "}}}
-
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Get configuration files
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-
-function! s:get_global_ini() abort
-    " Path for the global configuration. {{{1
-    if exists('s:global_ini') && s:global_ini != ''
-        return s:global_ini
-    endif
-
-    let f = get(g:, 'async_taskfile_global', 'tasks.ini')
-    let l:In = { dir -> filereadable(expand(dir).'/'.f) }
-    let l:Is = { dir -> expand(dir).'/'.f }
-
-    let s:global_ini = has('nvim') &&
-                \ l:In(stdpath('data'))  ? l:Is(stdpath('data')) :
-                \ l:In('$HOME/.vim')     ? l:Is('$HOME/.vim') :
-                \ l:In('$HOME/vimfiles') ? l:Is('$HOME/vimfiles') : ''
-
-    if s:global_ini == ''
-        let dir = fnamemodify(expand($MYVIMRC), ':p:h')
-        if filereadable(dir . '/' . f)
-            let s:global_ini = dir . '/' . f
-        endif
-    endif
-    return s:global_ini
-endfunction "}}}
-
-
-function! s:get_local_ini() abort
-    " Path for the project configuration. {{{1
-    return getcwd() . '/' . get(g:, 'async_taskfile_local', '.tasks')
-endfunction "}}}
-
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Helpers
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-
-function! s:find_root() abort
-    " Search recursively for a local tasks file in parent directories. {{{1
-    let dir = expand('%:p:h')
-    let fname = s:get_local_ini()
-    while v:true
-        if filereadable(dir . '/' . fname )
-            return dir
-        elseif fnamemodify(dir, ':p:h:h') == dir
-            break
-        else
-            let dir = fnamemodify(dir, ':p:h:h')
-        endif
-    endwhile
-    return v:null
-endfunction "}}}
-
-
-function! s:change_root(root) abort
-    " Confirm root change. {{{1
-    return a:root != v:null &&
-                \ confirm('Change directory to ' . a:root . '?', "&Yes\n&No") == 1
-endfunction "}}}
-
-
 
 
 

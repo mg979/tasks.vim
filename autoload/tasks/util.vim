@@ -80,5 +80,66 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Configuration files paths
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+""
+" Path for the project configuration.
+""
+function! s:Util.local_ini() abort
+    return getcwd() . '/' . get(g:, 'async_taskfile_local', '.tasks')
+endfunction
+
+
+""
+" Path for the global configuration.
+""
+function! s:Util.global_ini() abort
+    if exists('s:global_ini') && s:global_ini != ''
+        return s:global_ini
+    endif
+
+    let f = get(g:, 'async_taskfile_global', 'tasks.ini')
+    let l:In = { dir -> filereadable(expand(dir).'/'.f) }
+    let l:Is = { dir -> expand(dir).'/'.f }
+
+    let s:global_ini = has('nvim') &&
+                \ l:In(stdpath('data'))  ? l:Is(stdpath('data')) :
+                \ l:In('$HOME/.vim')     ? l:Is('$HOME/.vim') :
+                \ l:In('$HOME/vimfiles') ? l:Is('$HOME/vimfiles') : ''
+
+    if s:global_ini == ''
+        let dir = fnamemodify(expand($MYVIMRC), ':p:h')
+        if filereadable(dir . '/' . f)
+            let s:global_ini = dir . '/' . f
+        endif
+    endif
+    return s:global_ini
+endfunction
+
+
+""
+" Search recursively for a local tasks file in parent directories.
+""
+function! s:Util.find_root() abort
+    return findfile(get(g:, 'async_taskfile_local', '.tasks'))
+endfunction
+
+
+""
+" Confirm root change.
+""
+function! s:Util.change_root(root) abort
+    return !empty(a:root) &&
+                \ confirm('Change directory to ' . a:root . '?', "&Yes\n&No") == 1
+endfunction
+
+
+
+
+
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " vim: et sw=4 ts=4 sts=4 fdm=marker
