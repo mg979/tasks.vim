@@ -304,15 +304,15 @@ fun! s:cb_quickfix(job) abort
   " if make had errors and directory changed, we must lcd into it else the qfix
   " will point to wrong paths; do this in a new window, though
   " we will also force jumping to error, otherwise the window stays empty
-  let [makerr, has_lcd] = [!job.locl && !job.grep && status, v:false]
+  let [makerr, has_lcd] = [!job.grep && status, v:false]
 
   if makerr && has_key(a:job.opts, 'cwd') && a:job.opts.cwd != getcwd()
-    call s:lcd_in_new_win(a:job.opts.cwd)
+    let job.winid = s:lcd_in_new_win(a:job.opts.cwd)
     let job.nojump = 0
     let has_lcd = v:true
 
   elseif makerr && a:job.wd != getcwd()
-    call s:lcd_in_new_win(a:job.wd)
+    let job.winid = s:lcd_in_new_win(a:job.wd)
     let job.nojump = 0
     let has_lcd = v:true
   endif
@@ -397,6 +397,7 @@ endfun
 fun! s:lcd_in_new_win(wd)
   new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
   lcd `=a:wd`
+  return win_getid()
 endfun
 
 ""
