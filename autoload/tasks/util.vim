@@ -28,14 +28,6 @@ let s:v.pospat     = '<top>|<bottom>|<left>|<right>|<vertical>'
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 ""
-" Basename of the working directory.
-""
-function! s:Util.basedir() abort
-    return fnamemodify(expand(getcwd()), ':t')
-endfunction
-
-
-""
 " Base filetype.
 ""
 function! s:Util.ft() abort
@@ -87,7 +79,7 @@ endfunction
 " Path for the project configuration.
 ""
 function! s:Util.local_ini() abort
-    return getcwd() . '/' . get(g:, 'async_taskfile_local', '.tasks')
+    return findfile(get(g:, 'async_taskfile_local', '.tasks'), ".;")
 endfunction
 
 
@@ -119,19 +111,35 @@ endfunction
 
 
 ""
-" Search recursively for a local tasks file in parent directories.
+" Basename of the working directory.
 ""
-function! s:Util.find_root() abort
-    return findfile(get(g:, 'async_taskfile_local', '.tasks'))
+function! s:Util.basedir() abort
+    return fnamemodify(self.find_root(), ':t')
 endfunction
 
 
 ""
-" Confirm root change.
+" Search recursively for a local tasks file in parent directories.
 ""
-function! s:Util.change_root(root) abort
-    return !empty(a:root) &&
-                \ confirm('Change directory to ' . a:root . '?', "&Yes\n&No") == 1
+function! s:Util.find_root() abort
+    let f = self.local_ini()
+    return empty(f) ? '' : fnamemodify(f, ':p:h')
+endfunction
+
+
+""
+" Set the working directory for the task.
+""
+function! s:Util.setwd(dir)
+  let tcd = exists(':tcd') == 2 && haslocaldir(-1, 0)
+  let lcd = haslocaldir(winnr(), tabpagenr()) == 1
+  if lcd
+      lcd `=a:dir`
+  elseif tcd
+      tcd `=a:dir`
+  else
+      cd `=a:dir`
+  endif
 endfunction
 
 

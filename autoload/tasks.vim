@@ -48,15 +48,16 @@ endfunction "}}}
 
 function! tasks#project(reload) abort
     " Get the project-local tasks dictionary. {{{1
+    let root = s:ut.find_root()
+    if empty(root)
+        return {}
+    endif
     let prj = s:ut.basedir()
     if !a:reload && has_key(g:tasks, prj)
         return g:tasks[prj]
     endif
-    let f = s:ut.local_ini()
-    if !filereadable(f)
-        return {}
-    endif
-    let g:tasks[prj] = tasks#parse#do(readfile(f), 1)
+    let g:tasks[prj] = tasks#parse#do(readfile(s:ut.local_ini()), 1)
+    let g:tasks[prj].root = root
     return g:tasks[prj]
 endfunction "}}}
 
@@ -71,6 +72,7 @@ function! tasks#global(reload) abort
         return {}
     endif
     let g:tasks.global = tasks#parse#do(readfile(f), 0)
+    let g:tasks.global.root = getcwd()
     return g:tasks.global
 endfunction "}}}
 
@@ -105,13 +107,14 @@ function! tasks#run(args, ...) abort
     " Main command to run a task. Will call async#cmd. {{{1
     redraw
     let prj = tasks#get()
-    if empty(prj)
-        let root = s:ut.find_root()
-        if s:ut.change_root(root)
-            lcd `=root`
-            let prj = tasks#get()
-        endif
+
+    if !empty(prj) && prj.root != getcwd()
+        let [olddir, oldbuf] = [getcwd(), bufnr('')]
+        call s:ut.setwd(prj.root)
+    else
+        let olddir = v:null
     endif
+
     if s:ut.no_tasks(prj)
         if !a:0 || !a:1
             redraw
@@ -154,6 +157,7 @@ function! tasks#run(args, ...) abort
                 \ 'unlisted': task.unlisted,
                 \ 'discard': task.discard,
                 \ 'hidden': task.hidden,
+                \ 'wd': prj.root,
                 \}, opts)
     let jobopts = {
                 \ 'env': prj.env,
@@ -164,6 +168,10 @@ function! tasks#run(args, ...) abort
         call async#qfix(args, useropts, jobopts)
     else
         call async#cmd(cmd . ' ' . args, mode, useropts, jobopts)
+    endif
+
+    if olddir isnot v:null && bufnr('') == oldbuf
+        call s:ut.setwd(olddir)
     endif
 endfunction "}}}
 
@@ -258,14 +266,14 @@ function! s:get_cwd(prj, task) abort
         let cwd = substitute(cwd, '\(\$[A-Z_]\+\)\>', '\=expand(submatch(1))', 'g')
         return cwd
     else
-        return expand(getcwd())
+        return a:prj.root
     endif
 endfunction "}}}
 
 
 function! s:expand_builtin_envvars(string, prj, expand_prjname) abort
     " Expand built-in variables $ROOT and $PRJNAME. {{{1
-    let s = substitute(a:string, '\$ROOT\>', '\=expand(getcwd())', 'g')
+    let s = substitute(a:string, '\$ROOT\>', '\=a:prj.root', 'g')
     if a:expand_prjname
         let s = substitute(s, '\$PRJNAME\>', '\=a:prj.info.name', 'g')
     endif
