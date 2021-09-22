@@ -158,6 +158,7 @@ function! tasks#run(args, ...) abort
                 \ 'discard': task.discard,
                 \ 'hidden': task.hidden,
                 \ 'wd': prj.root,
+                \ 'wdrestore': olddir,
                 \}, opts)
     let jobopts = {
                 \ 'env': prj.env,

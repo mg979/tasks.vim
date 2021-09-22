@@ -622,6 +622,9 @@ endfun "}}}
 "
 "  Also include the current winid, buffer number and cwd, they can be used by
 "  the job, even though they're not 'options'.
+"  'wdrestore' is used for terminal jobs, to restore the working directory in
+"  the original buffer, if this was lost, because before the terminal starts,
+"  the wd can be set elsewhere (to the prject root, for example).
 "
 "  'makeprg'     makeprg                      default: &makeprg (local preferred)
 "  'grepprg'     grepprg                      default: &grepprg (local preferred)
@@ -653,6 +656,7 @@ fun! s:default_opts()
         \ 'winid': win_getid(),
         \ 'bufnr': bufnr(''),
         \ 'wd': getcwd(),
+        \ 'wdrestore': v:null,
         \
         \ 'makeprg': s:bufvar('&makeprg'),
         \ 'grepprg': s:bufvar('&grepprg'),
@@ -822,8 +826,9 @@ fun! s:get_env(env) abort
 endfun
 
 " Start job {{{1
+
 ""
-" s:job_start: start a job and return its id
+" s:job_start: start a job and return its id/object
 ""
 fun! s:job_start(cmd, opts, useropts) abort
   if a:useropts.mode == 'terminal'
@@ -837,9 +842,17 @@ endfun
 " s:term_start: start job in an embedded terminal
 ""
 fun! s:term_start(cmd, opts, useropts) abort
-  if has('nvim')
-    new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
+  if get(a:useropts, 'wdrestore', v:null) isnot v:null
+    " the current buffer possibly lost its wd because it was set to the command
+    " wd, an it wants it to be restored when coming back to it
+    augroup async_restorewd
+      au!
+      exe 'autocmd BufEnter,CursorHold <buffer> call s:check_wd('. (s:id + 1) .')'
+    augroup END
   endif
+  " start the terminal in a new window in any case
+  new +setlocal\ bt=nofile\ bh=wipe\ noswf\ nobl
+  call extend(a:opts, {'curwin': v:true})
   let job = has('nvim') ? termopen(a:cmd, a:opts)
         \               : term_getjob(term_start(a:cmd, a:opts))
   let a:useropts.termbuf = bufnr('')
@@ -1053,6 +1066,29 @@ fun! s:error(msg)
   echon a:msg
   echohl None
   call confirm('Operation canceled', "&Ok")
+endfun
+
+" Restore working directory if applicable {{{1
+
+fun! s:check_wd(jobid)
+  au! async_restorewd
+  aug! async_restorewd
+  if has_key(g:async_finished_jobs, a:jobid)
+    let job = g:async_finished_jobs[a:jobid]
+  elseif has_key(g:async_jobs, a:jobid)
+    let job = g:async_jobs[a:jobid]
+  else
+    return
+  endif
+  if job.wdrestore isnot v:null && getcwd() != job.wdrestore
+    if haslocaldir(winnr(), tabpagenr()) == 1
+      lcd `=job.wdrestore`
+    elseif exists(':tcd') == 2 && haslocaldir(-1, 0)
+      tcd `=job.wdrestore`
+    else
+      cd `=job.wdrestore`
+    endif
+  endif
 endfun
 
 "}}}
