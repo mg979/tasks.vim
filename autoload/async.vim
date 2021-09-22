@@ -306,13 +306,13 @@ fun! s:cb_quickfix(job) abort
   " we will also force jumping to error, otherwise the window stays empty
   let [makerr, has_lcd] = [!job.grep && status, v:false]
 
-  if makerr && has_key(a:job.opts, 'cwd') && a:job.opts.cwd != getcwd()
-    let job.winid = s:lcd_in_new_win(a:job.opts.cwd)
+  if makerr && has_key(job.opts, 'cwd') && job.opts.cwd != getcwd()
+    let job.winid = s:lcd_in_new_win(job.opts.cwd)
     let job.nojump = 0
     let has_lcd = v:true
 
-  elseif makerr && a:job.wd != getcwd()
-    let job.winid = s:lcd_in_new_win(a:job.wd)
+  elseif makerr && job.wd != getcwd()
+    let job.winid = s:lcd_in_new_win(job.wd)
     let job.nojump = 0
     let has_lcd = v:true
   endif
@@ -320,12 +320,12 @@ fun! s:cb_quickfix(job) abort
   " bufnr is needed to see if it has jumped to the first error
   " appending prevents using the nojump option, must be handled later
   let prevbuf = bufnr('')
-  let prevlist = a:job.locl ? !empty(getloclist(a:job.winid)) : !empty(getqflist())
-  let appending = a:job.append && prevlist
+  let prevlist = job.locl ? !empty(getloclist(job.winid)) : !empty(getqflist())
+  let appending = job.append && prevlist
 
   " cexpr command to fill the qfix/location list
-  let cxpr =  a:job.locl ? 'l' : 'c'
-  let cxpr .= appending ? 'add' : a:job.nojump ? 'get' : ''
+  let cxpr =  job.locl ? 'l' : 'c'
+  let cxpr .= appending ? 'add' : job.nojump ? 'get' : ''
   let cxpr .= 'expr'
 
   exe 'silent doautocmd QuickFixCmdPre' job.qfautocmd
