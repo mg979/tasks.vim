@@ -61,6 +61,9 @@ fun! async#cmd(cmd, mode, ...) abort
     return 0
   else
     let opts = extend(s:job_opts(useropts), jobopts)
+    if has_key(opts, 'cwd') && !isdirectory(opts.cwd)
+      return s:error('the directory ' . opts.cwd . ' doesnt'' exist!')
+    endif
     let job = s:job_start(cmd, opts, useropts)
     let s:id += 1
     let g:async_jobs[s:id] = extend({
@@ -1002,7 +1005,7 @@ fun! s:get_pos(job, default) abort
   endif
 endfun
 
-" Render the job dict as json in a scratch buffer. {{{1
+" Render the job dict as json in a scratch buffer {{{1
 fun! s:job_as_json(dict) abort
   let data = s:normalize_dict(deepcopy(a:dict))
   let json = json_encode(data)
@@ -1025,7 +1028,7 @@ fun! s:normalize_dict(dict)
   return a:dict
 endfun
 
-" Prompt for a job id and check its validity. {{{1
+" Prompt for a job id and check its validity {{{1
 
 fun! s:prompt_id(finished) abort
   let id = input('> ')
@@ -1041,6 +1044,15 @@ fun! s:prompt_id(finished) abort
   return id
 endfun
 
+" Print an error message {{{1
+
+fun! s:error(msg)
+  echo '[async.vim] '
+  echohl WarningMsg
+  echon a:msg
+  echohl None
+  call confirm('Operation canceled', "&Ok")
+endfun
 
 "}}}
 
