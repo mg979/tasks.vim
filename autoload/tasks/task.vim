@@ -280,7 +280,7 @@ let s:fields = {
             \ 'fail':        { k,v -> v:true },
             \ 'syntax':      { k,v -> v =~ '\w\+\(\.\w\+\)\?' },
             \ 'args':        { k,v -> v:true },
-            \ 'mapping':     { k,v -> v =~ '^.$' },
+            \ 'mapping':     { k,v -> v =~ '^.$\|^f[1-9]$\|^f1[0-2]$' },
             \ 'options':     { k,v -> v:true },
             \ 'errorformat': { k,v -> v:true },
             \ 'grepformat':  { k,v -> v:true },

@@ -77,26 +77,26 @@ function! tasks#list#choose(...) abort
     if empty(available)
         return
     endif
-    let Keys = s:get_keys(prj, len(available))
     let dict = {}
-    let i = 1
+    let i = 97
     call s:cmdline_bar(prj)
     echohl Comment
     echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
     for t in available
         let T = prj.tasks[t]
-        if has_key(T.fields, 'mapping')
-            let Keys[i] = T.fields.mapping
-            let map = T.fields.mapping ."\t"
+        if has_key(T.fields, 'mapping') && has_key(s:keys, T.fields.mapping)
+            let printkey = s:keys[T.fields.mapping][0] . "\t"
+            let actualkey = s:keys[T.fields.mapping][1]
         else
-            let map = s:get_key(Keys, i)
+            let printkey = s:keys[nr2char(i)][0] . "\t"
+            let actualkey = s:keys[nr2char(i)][1]
         endif
-        let dict[Keys[i]] = t
+        let dict[actualkey] = t
         ""
         " ---------------------------- [ mapping ] ----------------------------
         ""
         echohl Special
-        echo map
+        echo printkey
         ""
         " --------------------------- [ task name ] ---------------------------
         ""
@@ -135,7 +135,7 @@ function! tasks#list#choose(...) abort
             redraw
             echohl Delimiter  | echo 'Command: ' | echohl None
             echon tasks#expand_cmd(prj.tasks[dict[ch]], prj)
-            let args = input('args: ')
+            let args = input('args: ', '', 'file')
             if empty(args) && confirm('Run with no arguments?', "&Yes\n&No") != 1
                 redraw
                 echo 'Canceled'
@@ -160,14 +160,6 @@ endfunction "}}}
 let s:ut   = tasks#util#init()
 let s:v    = s:ut.Vars
 let s:bvar = { v -> getbufvar(bufnr(''), v) }
-
-let s:Fnk = { 1: "\<F1>", 2: "\<F2>",   3: "\<F3>",   4: "\<F4>",
-            \ 5: "\<F5>", 6: "\<F6>",   7: "\<F7>",   8: "\<F8>",
-            \ 9: "\<F9>", 10: "\<F10>", 11: "\<F11>", 12: "\<F12>"}
-
-let s:Fn5 = { 1: "\<F5>", 2: "\<F6>",  3: "\<F7>",  4: "\<F8>",
-            \ 5: "\<F9>", 6: "\<F10>", 7: "\<F11>", 8: "\<F12>"}
-
 
 function! s:available_tasks(prj)
     let available = filter(sort(keys(a:prj.tasks)),
@@ -212,36 +204,14 @@ function! s:tasks_as_json(prj) abort
 endfunction "}}}
 
 
-function! s:get_keys(prj, available)
-    let n = a:available
-    let F6 = has_key(a:prj.info, 'options') && a:prj.info.options =~ '\<f6key\>'
-    let Fn = has_key(a:prj.info, 'options') && a:prj.info.options =~ '\<fnkeys\>'
+let s:keys = {'f1': ['<F1>', "\<F1>"], 'f2': ['<F2>', "\<F2>"],   'f3': ['<F3>', "\<F3>"],   'f4': ['<F4>', "\<F4>"],
+            \ 'f5': ['<F5>', "\<F5>"], 'f6': ['<F6>', "\<F6>"],   'f7': ['<F7>', "\<F7>"],   'f8': ['<F8>', "\<F8>"],
+            \ 'f9': ['<F9>', "\<F9>"], 'f10': ['F<F10>', "\<F10>"], 'f11': ['F<F11>', "\<F11>"], 'f12': ['F<F12>', "\<F12>"]}
 
-    if F6 && n == 1
-
-        let keys = { 1: "\<F6>"}
-        let s:get_key = { k,c -> '<F6>' . "\t"}
-
-    elseif F6 && n <= 8
-
-        let keys = copy(s:Fn5)
-        let s:get_key = { k,c -> '<F'.(c+4).'>' . "\t"}
-
-    elseif (Fn || F6) && n <= 12
-
-        let keys = copy(s:Fnk)
-        let s:get_key = { k,c -> '<F'.c.'>' . "\t"}
-
-    else
-        let keys = {}
-        for i in range(1, 26)
-            let keys[i] = nr2char(96 + i)
-        endfor
-        let s:get_key = { k,c -> k[c] . "\t"}
-    endif
-
-    return keys
-endfunction
+for s:n in range(33, 126)
+    let s:ch = nr2char(s:n)
+    let s:keys[s:ch] = [s:ch, s:ch]
+endfor
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " vim: ft=vim et ts=4 sw=4 fdm=marker

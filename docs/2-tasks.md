@@ -434,7 +434,7 @@ any of them, or both, or none.
 ```ini
 [project-build]
 command=make
-mapping=b
+mapping=f6
 
 [project-clean]
 command=make clean
@@ -442,8 +442,9 @@ output=cmdline
 mapping=c
 ```
 When using the __Tasks-Choose__ plug, keys for task selection are automatically
-assigned. By defining this field to a single character you can force the plug
-to use this instead.
+assigned. By defining this field you can force the plug to use this instead.
+
+Valid values any ASCII character, of `f1` ... `f12` for function keys.
 
 
 
