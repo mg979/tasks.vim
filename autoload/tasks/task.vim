@@ -44,6 +44,7 @@ function! s:validate_task(project, name) abort dict
     if s:is_info_section(p, n, t)   | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
     if s:no_valid_fields(t.fields)  | return v:false | endif
+    if s:failing_fields(t.fields)   | return v:false | endif
 
     call s:clean_up_task(t)
     return v:true
@@ -94,7 +95,7 @@ function! s:failing_conditions(item) abort
     " if conditions are separated by '+' they must all be satisfied
     " if conditions are separated by ',' any of them is enough
     if match(a:item, '/') > 0
-        let l:Has = { cond -> cond !~? '\clinux\|windows\|macos\|wsl' && has(cond) }
+        let Has = { cond -> cond !~? '\clinux\|windows\|macos\|wsl' && has(cond) }
         let [_, conds] = split(a:item, '/')
         if match(conds, '+') >= 0
             for cond in split(conds, '+')
@@ -102,12 +103,12 @@ function! s:failing_conditions(item) abort
                 elseif cond ==? 'macos'   && !s:v.is_macos   | return v:true
                 elseif cond ==? 'windows' && !s:v.is_windows | return v:true
                 elseif cond ==? 'wsl'     && !s:v.is_wsl     | return v:true
-                elseif !l:Has(cond)                          | return v:true
+                elseif !Has(cond)                            | return v:true
                 endif
             endfor
         else
             for cond in split(conds, ',')
-                if l:Has(cond)                              | return v:false
+                if Has(cond)                                | return v:false
                 elseif cond ==? 'linux'   && s:v.is_linux   | return v:false
                 elseif cond ==? 'macos'   && s:v.is_macos   | return v:false
                 elseif cond ==? 'windows' && s:v.is_windows | return v:false
@@ -129,6 +130,18 @@ function! s:no_valid_fields(fields) abort
     return empty(a:fields) || s:no_command(a:fields)
 endfunction
 
+
+function! s:failing_fields(fields)
+    if has_key(a:fields, 'ifexists')
+        for v in split(a:fields.ifexists, ',')
+            if filereadable(v) || isdirectory(v) || expand(v) != v
+                return v:false
+            endif
+        endfor
+        return v:true
+    endif
+    return v:false
+endfunction
 
 ""
 " Check that one 'command' field has been defined for the task.
@@ -262,6 +275,7 @@ let s:patterns_task = {
             \ 'grepformat':   '^grepformat\ze=',
             \ 'outfile':      '^outfile\ze=',
             \ 'errfile':      '^errfile\ze=',
+            \ 'ifexists':     '^ifexists\ze=',
             \}
 
 let s:options = [
@@ -286,6 +300,7 @@ let s:fields = {
             \ 'grepformat':  { k,v -> v:true },
             \ 'outfile':     { k,v -> v =~ '\f\+' },
             \ 'errfile':     { k,v -> v =~ '\f\+' },
+            \ 'ifexists':    { k,v -> v:true },
             \}
 
 

@@ -252,6 +252,7 @@ Legal task fields are:
 | grepformat  | as vim option                                                   |
 | outfile     | path for the stdout log                                         |
 | errfile     | path for the stderr log                                         |
+| ifexists    | special conditions                                              |
 | mapping     | mapping for plug                                                |
 
 ---
@@ -427,6 +428,24 @@ won't be used.
 If you set the _writelogs_ option, default log filenames are obtained with
 `tempname()`, unless you set these fields to some specific path. You can set
 any of them, or both, or none.
+
+---
+
+#### ifexists
+```ini
+[make] @always
+command=make
+ifexists=Makefile,makefile
+```
+Task is considered valid if one of the following conditions is satisfied:
+
+- a file or a directory with this name exists in the current working directory
+- an environmental variable exists with this name
+
+You can provide multiple items, separated by string, each will be checked,
+task will be valid if any of them is valid.
+
+This is mostly useful for global tasks.
 
 ---
 
