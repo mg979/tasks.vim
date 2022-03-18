@@ -100,13 +100,20 @@ function! s:Util.global_ini() abort
     endif
 
     let f = get(g:, 'async_taskfile_global', 'tasks.ini')
-    let l:In = { dir -> filereadable(expand(dir).'/'.f) }
-    let l:Is = { dir -> expand(dir).'/'.f }
+    let In = { dir -> filereadable(expand(dir).'/'.f) }
+    let Is = { dir -> expand(dir).'/'.f }
 
-    let s:global_ini = has('nvim') &&
-                \ l:In(stdpath('data'))  ? l:Is(stdpath('data')) :
-                \ l:In('$HOME/.vim')     ? l:Is('$HOME/.vim') :
-                \ l:In('$HOME/vimfiles') ? l:Is('$HOME/vimfiles') : ''
+    if has('nvim')
+        let [c, d] = [stdpath('config'), stdpath('data')]
+        let s:global_ini =
+                    \ In(c)  ? Is(c) :
+                    \ In(d)  ? Is(d) :
+                    \ In(d .. '/site') ? Is(d .. '/site') : ''
+    else
+        let s:global_ini =
+                    \ In('$HOME/.vim')     ? Is('$HOME/.vim') :
+                    \ In('$HOME/vimfiles') ? Is('$HOME/vimfiles') : ''
+    endif
 
     if s:global_ini == ''
         let dir = fnamemodify(expand($MYVIMRC), ':p:h')
