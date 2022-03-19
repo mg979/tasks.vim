@@ -78,25 +78,18 @@ function! tasks#list#choose(...) abort
         return
     endif
     let dict = {}
-    let i = 97
     call s:cmdline_bar(prj)
     echohl Comment
     echo "Key\tTask\t\t\t\tTag\t\tOutput\t\tCommand"
-    for t in available
+    for task in s:mapped_tasks(available, prj)
+        let t = task.name
         let T = prj.tasks[t]
-        if has_key(T.fields, 'mapping') && has_key(s:keys, T.fields.mapping)
-            let printkey = s:keys[T.fields.mapping][0] . "\t"
-            let actualkey = s:keys[T.fields.mapping][1]
-        else
-            let printkey = s:keys[nr2char(i)][0] . "\t"
-            let actualkey = s:keys[nr2char(i)][1]
-        endif
-        let dict[actualkey] = t
+        let dict[task.actualkey] = t
         ""
         " ---------------------------- [ mapping ] ----------------------------
         ""
         echohl Special
-        echo printkey
+        echo task.printkey
         ""
         " --------------------------- [ task name ] ---------------------------
         ""
@@ -125,7 +118,6 @@ function! tasks#list#choose(...) abort
             let cmd = cmd[:(&columns - 84)] . '…'
         endif
         echon cmd
-        let i += 1
     endfor
     echo ''
     let ch = getchar()
@@ -151,6 +143,70 @@ function! tasks#list#choose(...) abort
 endfunction "}}}
 
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Mappings generation for tasks
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+let s:next_available = 97 "letter 'a'
+
+let s:Key  = { map -> [s:keys[map][0] . "\t", s:keys[map][1]] }
+let s:Seen = { n, is_fn -> is_fn ? has_key(s:seenF, n) : has_key(s:seenA, n) }
+
+function! s:get_fkey(n)
+    let n = a:n
+    if !s:Seen(n, 1)
+        let s:seenF[n] = v:true
+        return s:Key('f' .. n)
+    elseif n < 12
+        for x in range(n + 1, 12) " up to <F12>
+            if !s:Seen(x, 0)
+                let s:seenF[x] = v:true
+                return s:Key('f' .. x)
+            endif
+        endfor
+        return s:get_alphakey(s:next_available)
+    else
+        return s:get_alphakey(s:next_available)
+    endif
+endfunction
+
+function! s:get_alphakey(n)
+    let n = a:n
+    if !s:Seen(n, 0)
+        let s:seenA[n] = v:true
+        return s:Key(nr2char(n))
+    else
+        for x in range(97, 126) "from 'a' to '~'
+            if !s:Seen(x, 0)
+                let s:next_available = x
+                break
+            endif
+        endfor
+        let s:seenA[s:next_available] = v:true
+        return s:Key(nr2char(s:next_available))
+    endif
+endfunction
+
+function! s:mapped_tasks(tasks, prj)
+    let [tasks, s:seenF, s:seenA] = [[], {}, {}]
+    for t in a:tasks
+        let task = {'name': t}
+        let T = a:prj.tasks[t]
+        if has_key(T.fields, 'mapping') && has_key(s:keys, T.fields.mapping)
+            if T.fields.mapping =~ 'f\d\+'
+                let [pk, ak] = s:get_fkey(matchstr(T.fields.mapping, '\d\+'))
+            else
+                let [pk, ak] = s:get_alphakey(char2nr(T.fields.mapping))
+            endif
+        else
+            let [pk, ak] = s:get_alphakey(s:next_available)
+        endif
+        let task.printkey = pk
+        let task.actualkey = ak
+        call add(tasks, task)
+    endfor
+    return tasks
+endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -206,7 +262,7 @@ endfunction "}}}
 
 let s:keys = {'f1': ['<F1>', "\<F1>"], 'f2': ['<F2>', "\<F2>"],   'f3': ['<F3>', "\<F3>"],   'f4': ['<F4>', "\<F4>"],
             \ 'f5': ['<F5>', "\<F5>"], 'f6': ['<F6>', "\<F6>"],   'f7': ['<F7>', "\<F7>"],   'f8': ['<F8>', "\<F8>"],
-            \ 'f9': ['<F9>', "\<F9>"], 'f10': ['F<F10>', "\<F10>"], 'f11': ['F<F11>', "\<F11>"], 'f12': ['F<F12>', "\<F12>"]}
+            \ 'f9': ['<F9>', "\<F9>"], 'f10': ['<F10>', "\<F10>"], 'f11': ['<F11>', "\<F11>"], 'f12': ['<F12>', "\<F12>"]}
 
 for s:n in range(33, 126)
     let s:ch = nr2char(s:n)
