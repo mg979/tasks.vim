@@ -760,7 +760,8 @@ fun! s:make_cmd(cmd, mode, env) abort
     return s:is_windows ? 'start cmd.exe /K ' . s:tempscript(cmd, a:env, 0)
           \             : s:unix_term(a:env, cmd)
   else
-    return s:is_windows ? 'cmd.exe /C ' . s:tempscript(cmd, a:env, 0)
+    return s:is_windows ? printf("%s %s %s", &shell, &shellcmdflag,
+          \                      shellescape(s:tempscript(cmd, a:env, 0)))
           \             : ['sh', '-c', cmd]
   endif
 endfun
