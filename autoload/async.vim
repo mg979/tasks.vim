@@ -320,6 +320,7 @@ fun! s:cb_quickfix(job) abort
   " bufnr is needed to see if it has jumped to the first error
   " appending prevents using the nojump option, must be handled later
   let prevbuf = bufnr('')
+  let altbuf = bufnr('#')
   let prevlist = job.locl ? !empty(getloclist(job.winid)) : !empty(getqflist())
   let appending = job.append && prevlist
 
@@ -361,6 +362,14 @@ fun! s:cb_quickfix(job) abort
         call s:jump_to_window(job)
       else
         let canopen = v:false
+      endif
+    endif
+    " if make fails when linking, a buffer might be created
+    if bufnr('') != prevbuf && bufname('') =~ '^make: \*\*\*'
+      exe 'buffer' prevbuf
+      bwipeout #
+      if altbuf != -1
+        let @# = altbuf
       endif
     endif
   endif
