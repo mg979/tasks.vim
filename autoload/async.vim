@@ -749,20 +749,20 @@ endfunction
 " Returns: the full command for the job_start() function
 ""
 fun! s:make_cmd(cmd, mode, env) abort
-  let cmd = a:cmd
+  let [cmd, sh, flag] = [a:cmd, &shell, &shellcmdflag]
 
   if a:mode == 'terminal'
     return s:is_windows ? s:tempscript(cmd, a:env, 0) :
-          \has('nvim')  ? ['sh', '-c', s:get_env(a:env) . cmd]
-          \             : ['sh', '-c', cmd]
+          \has('nvim')  ? [sh, flag, s:get_env(a:env) . cmd]
+          \             : [sh, flag, cmd]
 
   elseif a:mode == 'external'
     return s:is_windows ? 'start cmd.exe /K ' . s:tempscript(cmd, a:env, 0)
           \             : s:unix_term(a:env, cmd)
   else
-    return s:is_windows ? printf("%s %s %s", &shell, &shellcmdflag,
+    return s:is_windows ? printf("%s %s %s", sh, flag,
           \                      shellescape(s:tempscript(cmd, a:env, 0)))
-          \             : ['sh', '-c', cmd]
+          \             : [sh, flag, cmd]
   endif
 endfun
 
@@ -770,15 +770,16 @@ endfun
 " s:unix_term: command to start an external terminal in unix environment
 ""
 fun! s:unix_term(env, cmd) abort
+  let [cmd, sh, flag] = [a:cmd, &shell, &shellcmdflag]
   let X = systemlist('xset q &>/dev/null && echo 1 || echo 0')[0]
   if get(g:, 'async_unix_terminal', '') != ''
-    return split(g:async_unix_terminal) + [a:cmd]
+    return split(g:async_unix_terminal) + [cmd]
   elseif X && executable('urxvt')
-    return ['urxvt', '-hold', '-e', 'sh', '-c', a:cmd]
+    return ['urxvt', '-hold', '-e', sh, flag, cmd]
   elseif X && executable('xfce4-terminal')
-    return ['xfce4-terminal', '-H', '-e', 'sh', '-c', a:cmd]
+    return join(['xfce4-terminal', '-H', '-e', shellescape(sh . ' ' . flag . ' ' . cmd)])
   elseif s:is_wsl
-    return ['sh', '-c', 'cmd.exe /c start cmd.exe /K wsl.exe ' . s:tempscript(a:cmd, a:env, 1)]
+    return [sh, flag, 'cmd.exe /c start cmd.exe /K wsl.exe ' . s:tempscript(cmd, a:env, 1)]
   else
     return v:null
   endif
