@@ -87,7 +87,7 @@ endfunction
 " Path for the project configuration.
 ""
 function! s:Util.local_ini() abort
-    return getcwd() . '/' . get(g:, 'async_taskfile_local', '.tasks')
+    return getcwd() . '/.tasks'
 endfunction
 
 
@@ -152,14 +152,15 @@ endfunction
 " Search recursively for a local tasks file in parent directories.
 ""
 function! s:Util.find_root() abort
-    return findfile(get(g:, 'async_taskfile_local', '.tasks'))
+    let f = findfile('.tasks', '.;')
+    return f == '' ? '' : fnamemodify(f, ':p:h')
 endfunction
 
 
 ""
 " Confirm root change.
 ""
-function! s:Util.change_root(root) abort
+function! s:Util.confirm_change_root(root) abort
     return !empty(a:root) &&
                 \ confirm('Change directory to ' . a:root . '?', "&Yes\n&No") == 1
 endfunction

@@ -587,6 +587,7 @@ COMMANDS                                                      *tasks-commands*
  Task          1     1     run a task
  Tasks         0     1     list tasks
  TasksProfile  ?     1     echo/switch/reset profile
+ TasksOpen     0     1     open local or global (!) tasks definitions
 
 
                                                                     *:Task*  >
@@ -625,6 +626,16 @@ If tag is given, the profile is set to that tag. Note that the plugin does no
 attempt to verify that there are tasks with a tag that matches the profile, so
 it's perfectly legal to set a profile with no associated tasks.
 
+
+                                                                *:TasksOpen*  >
+    :TasksOpen[!]
+
+
+Open local tasks definitions. The `.tasks` file will be searched recursively,
+if it is found in a parent directory, the local current directory will be
+changed (after confirmation).
+
+With <bang>, open the global tasks definitions file(s) instead.
 
 
 

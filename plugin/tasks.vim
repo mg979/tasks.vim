@@ -26,6 +26,7 @@ let g:tasks = {'__tag__': 'default'}
 command! -nargs=1 -bang -complete=customlist,tasks#complete Task call tasks#run(<q-args>, <bang>0)
 
 command! -bar -bang Tasks call tasks#list#show(<bang>0)
+command! -bar -bang TasksOpen call tasks#open(<bang>0)
 
 command! -bang -nargs=? -complete=customlist,tasks#tags#complete TasksProfile call tasks#tags#apply(<q-args>, <bang>0)
 

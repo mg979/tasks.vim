@@ -83,6 +83,32 @@ function! tasks#global(reload) abort
 endfunction "}}}
 
 
+function! tasks#open(global) abort
+    " Open files with tasks definitions {{{1
+    if !a:global
+        if filereadable('.tasks')
+            split .tasks
+        else
+            let root = s:ut.find_root()
+            if root == '' && confirm('No tasks found, create local tasks file?', '&Yes\n&No') == 1
+                split .tasks
+            elseif s:ut.confirm_change_root(root)
+                lcd `=root`
+                split .tasks
+            endif
+        endif
+    else
+        let g = s:ut.global_ini()
+        if has_key(g.fts, &ft) && filereadable(g.fts[&ft])
+            exe 'split' g.fts[&ft]
+        endif
+        if filereadable(g.base)
+            exe 'split' g.base
+        endif
+    endif
+endfunction "}}}
+
+
 function! tasks#reset() abort
     " Reset tasks dictionaries. {{{1
     call s:ut.reset_paths()
@@ -121,7 +147,7 @@ function! tasks#run(args, ...) abort
     let prj = tasks#get()
     if empty(prj)
         let root = s:ut.find_root()
-        if s:ut.change_root(root)
+        if s:ut.confirm_change_root(root)
             lcd `=root`
             let prj = tasks#get()
         endif
