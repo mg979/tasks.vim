@@ -1,4 +1,1 @@
-exe printf('autocmd BufNewFile,BufReadPost %s,%s set filetype=tasks',
-      \    get(g:, 'async_taskfile_local', '.tasks'),
-      \    get(g:, 'async_taskfile_global', 'tasks.ini'))
-
+autocmd BufNewFile,BufReadPost .tasks,tasks.ini,*/tasks.d/*.tasks set filetype=tasks

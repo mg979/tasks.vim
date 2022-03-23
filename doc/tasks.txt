@@ -108,8 +108,7 @@ in your user vim directory (e.g. `~/.vim`). An example of global configuration
 file:
 >
     [file-run]
-    command:c,cpp="%<"
-    command:go="%<"
+    command="%<"
     command:python=python "%"
     command:javascript=node "%"
     command:sh=sh "%"
@@ -125,10 +124,20 @@ file:
     command:make=make
     output=quickfix
     cwd=%:p:h
+
     [open-in-browser] @always
     command:html/Linux=firefox "%"
     output=headless
 <
+Additionally, global tasks can be defined in files contained in the `tasks.d`
+directory, in the same location where the `tasks.ini` is located.
+
+The `tasks.d` directory must contain files with the name `{filetype}.tasks`,
+and they will be parsed for additional tasks for the current filetype.
+
+Note that in those files, you still have to specify the filetype in the
+`command` field, that is, the tasks themselves aren't parsed differently only
+because they are located in filetype-specific tasks files.
 
 
 

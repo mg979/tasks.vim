@@ -92,36 +92,59 @@ endfunction
 
 
 ""
+" Reset global ini locations so that they are fetched again.
+""
+fun! s:Util.reset_paths()
+    unlet! s:global_ini
+endfun
+
+
+""
 " Path for the global configuration.
 ""
 function! s:Util.global_ini() abort
-    if exists('s:global_ini') && s:global_ini != ''
+    if exists('s:global_ini') && s:global_ini isnot v:null
         return s:global_ini
     endif
 
-    let f = get(g:, 'async_taskfile_global', 'tasks.ini')
-    let In = { dir -> filereadable(expand(dir).'/'.f) }
-    let Is = { dir -> expand(dir).'/'.f }
+    let [all, root] = [{'fts': {}}, v:null]
+
+    let [f, d] = ['tasks.ini', 'tasks.d']
+    let In = { dir -> filereadable(expand(dir).'/'.f)
+                \  || isdirectory(expand(dir).'/'.d) }
 
     if has('nvim')
-        let [c, d] = [stdpath('config'), stdpath('data')]
-        let s:global_ini =
-                    \ In(c)  ? Is(c) :
-                    \ In(d)  ? Is(d) :
-                    \ In(d .. '/site') ? Is(d .. '/site') : ''
+        let places = [stdpath('config'),
+                    \ stdpath('data'),
+                    \ stdpath('data') .. '/site']
     else
-        let s:global_ini =
-                    \ In('$HOME/.vim')     ? Is('$HOME/.vim') :
-                    \ In('$HOME/vimfiles') ? Is('$HOME/vimfiles') : ''
+        let places = [expand('$HOME/.vim'),
+                    \ expand('$HOME/vimfiles'),
+                    \ fnamemodify(expand($MYVIMRC), ':p:h')]
     endif
 
-    if s:global_ini == ''
-        let dir = fnamemodify(expand($MYVIMRC), ':p:h')
-        if filereadable(dir . '/' . f)
-            let s:global_ini = dir . '/' . f
+    for path in places
+        if In(path)
+            let root = path
+            break
         endif
+    endfor
+
+    if root is v:null
+        return v:null
     endif
-    return s:global_ini
+
+    if filereadable(root .. '/' .. f)
+        let all.base = root .. '/' .. f
+    endif
+    if isdirectory(root .. '/' .. d)
+        for path in glob(root .. '/' .. d .. '/*.tasks', 0, 1)
+            let ft = fnamemodify(path, ':t:r')
+            let all.fts[ft] = path
+        endfor
+    endif
+    let s:global_ini = all
+    return all
 endfunction
 
 

@@ -66,14 +66,28 @@ function! tasks#global(reload) abort
     if !a:reload && has_key(g:tasks, 'global')
         return g:tasks.global
     endif
-    let f = s:ut.global_ini()
-    if !filereadable(f)
+    let g = s:ut.global_ini()
+    if g is v:null || !( filereadable(g.base) || filereadable(get(g, &ft, '')) )
         return {}
     endif
-    let g:tasks.global = tasks#parse#do(readfile(f), 0)
+    let g:tasks.global = {}
+    if filereadable(g.base)
+        let g:tasks.global = tasks#parse#do(readfile(g.base), 0)
+        if filereadable(get(g.fts, &ft, ''))
+            call extend(g:tasks.global.tasks, tasks#parse#do(readfile(g.fts[&ft]), 0).tasks)
+        endif
+    elseif filereadable(get(g.fts, &ft, ''))
+        let g:tasks.global = tasks#parse#do(readfile(g.fts[&ft]), 0)
+    endif
     return g:tasks.global
 endfunction "}}}
 
+
+function! tasks#reset() abort
+    " Reset tasks dictionaries. {{{1
+    call s:ut.reset_paths()
+    call tasks#get(1)
+endfunction "}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
