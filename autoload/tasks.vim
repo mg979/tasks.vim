@@ -131,7 +131,7 @@ endfunction "}}}
 
 function! tasks#complete(A, C, P) abort
     " Command line completion for tasks. {{{1
-    let valid = keys(get(tasks#get(), 'tasks', {}))
+    let valid = keys(get(tasks#get(1), 'tasks', {}))
     return filter(sort(valid), 'v:val=~#a:A')
 endfunction "}}}
 
