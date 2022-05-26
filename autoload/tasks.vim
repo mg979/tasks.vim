@@ -226,7 +226,7 @@ endfunction "}}}
 function! s:expand_env(env)
     " Expand special environmental variables. {{{1
     "
-    " The two patterns may be combined:
+    " The first two patterns may be combined:
     "
     " pattern VAR:= means vim filename modifiers are expanded, the variable is then
     "               assigned in the environment.
@@ -234,10 +234,30 @@ function! s:expand_env(env)
     " pattern @VAR= means the content will be substituted in all other
     "               environmental variables that contain it. The variable is NOT
     "               assigned in the environment.
+    "
+    " pattern &VAR= means the variable is evaluated as the result of some
+    "               vimscript function, it is then assigned in the environment.
     for k in keys(a:env)
         if k =~ ':$'
             let nk = k[:-2]
             let nv = async#expand(a:env[k])
+            unlet a:env[k]
+            let a:env[nk] = nv
+        endif
+    endfor
+    for k in keys(a:env)
+        if k =~ '^&'
+            let nk = k[1:]
+            try
+                if a:env[k] =~ '[a-zA-Z_#]\+'   " vim function name
+                    sandbox let ev = eval(a:env[k] . '()')
+                    let nv = type(ev) == v:t_string ? ev : ''
+                else
+                    let nv = ''
+                endif
+            catch
+                let nv = ''
+            endtry
             unlet a:env[k]
             let a:env[nk] = nv
         endif

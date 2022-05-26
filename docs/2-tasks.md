@@ -152,11 +152,17 @@ special syntaxes (that can be combined):
 | VAR:= | means vim filename modifiers are expanded, the variable is then assigned in the environment                                                      |
 | @VAR= | means the content will be substituted in all other environmental variables that contain it, the variable is NOT assigned in the environment |
 
+Additionally:
+
+|-------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| &VAR= | means the variable is evaluated as the result of some vimscript function, it is then assigned in the environment |
+
 Example with variable `@FILE` both expanded and replaced in other variables:
 ```ini
 #environment
 @FILE:=%:p:h:t
 MY_CMD=echo @FILE
+&EVALUATEDVAR=UserFunctionName
 ```
 
 

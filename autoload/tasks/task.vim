@@ -246,7 +246,7 @@ let s:ut = tasks#util#init()
 let s:v  = s:ut.Vars
 
 let s:patterns_env = {
-            \ 'envvar': '\C^@\?[A-Z_]\+:\?\ze=',
+            \ 'envvar': '\C^[@&]\?[A-Z_]\+:\?\ze=',
             \}
 
 let s:patterns_info = {

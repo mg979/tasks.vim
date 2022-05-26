@@ -23,8 +23,8 @@ syn match TasksEnvVar '\${\?[A-Z_]\+}\?' containedin=dosiniValue nextgroup=TaskS
 syn match TaskString  '.*' contained contains=TasksEnvVar
 syn match TaskOs      '/\zs.*\ze]' contained
 syn match TasksEnvField '\C^[A-Z_]\+\ze:\?='
-syn match TasksEnvRepl '\C^@[A-Z_]\+\ze:\?='
-syn match TasksEnvRepl '@[A-Z_]\+' containedin=dosiniValue nextgroup=TaskString
+syn match TasksEnvRepl '\C^[@&][A-Z_]\+\ze:\?='
+syn match TasksEnvRepl '[@&][A-Z_]\+' containedin=dosiniValue nextgroup=TaskString
 
 if has('win32')
     syn match TasksEnvVar '%[A-Z_]\+%' containedin=dosiniValue nextgroup=TaskString
