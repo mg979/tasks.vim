@@ -774,6 +774,8 @@ fun! s:unix_term(env, cmd) abort
   let X = systemlist('xset q &>/dev/null && echo 1 || echo 0')[0]
   if get(g:, 'async_unix_terminal', '') != ''
     return split(g:async_unix_terminal) + [cmd]
+  elseif s:is_macos && isdirectory('/Applications/iTerm.app')
+    return [s:iterm, cmd]
   elseif X && executable('urxvt')
     return ['urxvt', '-hold', '-e', sh, flag, cmd]
   elseif X && executable('xfce4-terminal')
@@ -1074,7 +1076,12 @@ let s:is_linux   = s:uname == 'Linux'
 let s:is_macos   = s:uname == 'Darwin'
 let s:is_wsl     = exists('$WSLENV')
 let s:py         = executable('python') ? 'python' : executable('python3') ? 'python3' : ''
+let s:iterm      = fnamemodify(expand('<sfile>'), ':p:h:h') . ('/sh/iterm')
 let s:cmdscripts = []
 let s:bufvar     = { v -> getbufvar(bufnr(''), v) }
+
+if s:is_macos
+  call system('chmod u+x ' . shellescape(s:iterm))
+endif
 
 " vim: et sw=2 ts=2 sts=2 fdm=marker
