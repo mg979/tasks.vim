@@ -147,8 +147,6 @@ endfunction "}}}
 " Mappings generation for tasks
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let s:next_available = 97 "letter 'a'
-
 let s:Key  = { map -> [s:keys[map][0] . "\t", s:keys[map][1]] }
 let s:Seen = { n, is_fn -> is_fn ? has_key(s:seenF, n) : has_key(s:seenA, n) }
 
@@ -188,6 +186,7 @@ function! s:get_alphakey(n)
 endfunction
 
 function! s:mapped_tasks(tasks, prj)
+    let s:next_available = 97 "letter 'a'
     let [tasks, s:seenF, s:seenA] = [[], {}, {}]
     for t in a:tasks
         let task = {'name': t}
