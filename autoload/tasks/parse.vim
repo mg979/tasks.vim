@@ -56,7 +56,7 @@ function! tasks#parse#do(lines, local) abort
         return {}
     endif
     let p = s:new_config(a:local)
-    let l:NewSection = function('tasks#task#new', [p, a:local])
+    let NewSection = function('tasks#task#new', [p, a:local])
     let current = v:null
 
     for line in a:lines
@@ -64,13 +64,13 @@ function! tasks#parse#do(lines, local) abort
             continue
 
         elseif match(line, s:envsect) == 0
-            let current = l:NewSection('__env__')
+            let current = NewSection('__env__')
 
         elseif a:local && match(line, s:infosect) == 0
-            let current = l:NewSection('__info__')
+            let current = NewSection('__info__')
 
         elseif !a:local && match(line, s:globsect) == 0
-            let current = l:NewSection('__globinfo__')
+            let current = NewSection('__infoglobal__')
 
         elseif match(line, s:tasksect) == 1
             """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -90,7 +90,7 @@ function! tasks#parse#do(lines, local) abort
                 continue
             endif
 
-            let current = l:NewSection(matchstr(line, s:tasksect))
+            let current = NewSection(matchstr(line, s:tasksect))
             let current.tag = tag
             let current.always   = always
             let current.unlisted = unlisted
@@ -99,6 +99,8 @@ function! tasks#parse#do(lines, local) abort
             let current.hidden   = hidden
 
         elseif current isnot v:null
+            " currently in a section/task, add field if pattern is valid
+            " fields added this way will still need to be validated
             for pat in values(current.patterns)
                 if match(line, pat) == 0
                     let item = matchstr(line, pat)
@@ -108,6 +110,7 @@ function! tasks#parse#do(lines, local) abort
             endfor
         endif
     endfor
+    " remove fields that could not be validated
     call filter(p.tasks, { k,v -> v.validate(p,k)})
     call s:update_prjname(p, a:local)
     return s:filter_tasks_by_os(p)
@@ -166,7 +169,7 @@ function! s:new_config(local) abort
         call extend(p.env, {'PRJNAME': s:ut.basedir()})
         let p.info = { 'name': s:ut.basedir() }
     else
-        let p.globinfo = {}
+        let p.infoglobal = {}
     endif
     return p
 endfunction "}}}

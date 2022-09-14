@@ -237,8 +237,8 @@ filenames), relative to the project directory. These files can then be rotated
 with mappings. Vim wildcards are used, so you can write globs such as
 `**/*.txt` to include also files in subdirectories.
 
-See for informations about globs expansion and the Plugs section for the
-mappings.
+See |wildcards| for informations about globs expansion and the Plugs section
+for the mappings.
 
 
 

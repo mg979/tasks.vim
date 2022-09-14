@@ -58,7 +58,6 @@ function! tasks#list#show(as_json) abort
 endfunction "}}}
 
 
-
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Choose task with mapping
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -150,7 +149,9 @@ endfunction "}}}
 let s:Key  = { map -> [s:keys[map][0] . "\t", s:keys[map][1]] }
 let s:Seen = { n, is_fn -> is_fn ? has_key(s:seenF, n) : has_key(s:seenA, n) }
 
+
 function! s:get_fkey(n)
+    " Get a valid Function key, or an alphanumeric key as fallback. {{{1
     let n = a:n
     if !s:Seen(n, 1)
         let s:seenF[n] = v:true
@@ -166,9 +167,11 @@ function! s:get_fkey(n)
     else
         return s:get_alphakey(s:next_available)
     endif
-endfunction
+endfunction "}}}
+
 
 function! s:get_alphakey(n)
+    " Get an alphanumeric key for a mapping. {{{1
     let n = a:n
     if !s:Seen(n, 0)
         let s:seenA[n] = v:true
@@ -183,9 +186,11 @@ function! s:get_alphakey(n)
         let s:seenA[s:next_available] = v:true
         return s:Key(nr2char(s:next_available))
     endif
-endfunction
+endfunction "}}}
+
 
 function! s:mapped_tasks(tasks, prj)
+    " Generate a list of tasks, with their associated mapping. {{{1
     let s:next_available = 97 "letter 'a'
     let [tasks, s:seenF, s:seenA] = [[], {}, {}]
     for t in a:tasks
@@ -205,7 +210,7 @@ function! s:mapped_tasks(tasks, prj)
         call add(tasks, task)
     endfor
     return tasks
-endfunction
+endfunction "}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -216,7 +221,9 @@ let s:ut   = tasks#util#init()
 let s:v    = s:ut.Vars
 let s:bvar = { v -> getbufvar(bufnr(''), v) }
 
+
 function! s:available_tasks(prj)
+    " Find valid tasks to be shown by the command. {{{1
     let available = filter(sort(keys(a:prj.tasks)),
                 \          '!get(a:prj.tasks[v:val], "hidden", v:false) &&
                 \           !get(a:prj.tasks[v:val], "unmapped", v:false)')
@@ -224,7 +231,8 @@ function! s:available_tasks(prj)
         echon s:ut.badge() 'no tasks'
     endif
     return available
-endfunction
+endfunction "}}}
+
 
 function! s:cmdline_bar(prj) abort
     " Top bar for command-line tasks list. {{{1
@@ -239,9 +247,7 @@ endfunction "}}}
 
 function! s:tasks_as_json(prj) abort
     " Display tasks in a buffer, in json format. {{{1
-    let py =        executable('python3') ? 'python3'
-                \ : executable('python')  ? 'python' : ''
-    if py == ''
+    if s:v.py == ''
         echon s:ut.badge() 'no python executable found in $PATH'
         return
     endif
@@ -252,16 +258,20 @@ function! s:tasks_as_json(prj) abort
     wincmd H
     put =json
     1d _
-    exe '%!' . py . ' -m json.tool'
+    exe '%!' . s:v.py . ' -m json.tool'
+    nnoremap <buffer><silent> gq :silent! hide<cr>
     setfiletype json
     let &l:statusline = '%#PmenuSel# Tasks %#Pmenu# ft=' .
                 \       ft . ' %#Statusline# ' . f
 endfunction "}}}
 
 
-let s:keys = {'f1': ['<F1>', "\<F1>"], 'f2': ['<F2>', "\<F2>"],   'f3': ['<F3>', "\<F3>"],   'f4': ['<F4>', "\<F4>"],
-            \ 'f5': ['<F5>', "\<F5>"], 'f6': ['<F6>', "\<F6>"],   'f7': ['<F7>', "\<F7>"],   'f8': ['<F8>', "\<F8>"],
-            \ 'f9': ['<F9>', "\<F9>"], 'f10': ['<F10>', "\<F10>"], 'f11': ['<F11>', "\<F11>"], 'f12': ['<F12>', "\<F12>"]}
+let s:keys = {'f1': ['<F1>', "\<F1>"], 'f2': ['<F2>', "\<F2>"],
+            \ 'f3': ['<F3>', "\<F3>"], 'f4': ['<F4>', "\<F4>"],
+            \ 'f5': ['<F5>', "\<F5>"], 'f6': ['<F6>', "\<F6>"],
+            \ 'f7': ['<F7>', "\<F7>"], 'f8': ['<F8>', "\<F8>"],
+            \ 'f9': ['<F9>', "\<F9>"], 'f10': ['<F10>', "\<F10>"],
+            \ 'f11': ['<F11>', "\<F11>"], 'f12': ['<F12>', "\<F12>"]}
 
 for s:n in range(33, 126)
     let s:ch = nr2char(s:n)

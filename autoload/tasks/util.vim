@@ -22,6 +22,7 @@ let s:uname        = s:v.is_windows ? '' : systemlist('uname')[0]
 let s:v.is_linux   = s:uname == 'Linux'
 let s:v.is_macos   = s:uname == 'Darwin'
 let s:v.is_wsl     = exists('$WSLENV')
+let s:v.py         = executable('python') ? 'python' : executable('python3') ? 'python3' : ''
 
 let s:v.pospat     = '<top>|<bottom>|<left>|<right>|<vertical>'
 

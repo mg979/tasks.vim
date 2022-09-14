@@ -189,6 +189,7 @@ The _filerotate_ field can be filled with a list of comma-separated globs (or
 filenames), relative to the project directory. These files can then be rotated
 with mappings. Vim wildcards are used, so you can write globs such as
 `**/*.txt` to include also files in subdirectories.
+
 See `:help wildcards` for informations about globs expansion and the
 [Plugs](2-tasks.html#h-plugs) section for the mappings.
 
@@ -253,7 +254,7 @@ Legal task fields are:
 | args        | command arguments                                               |
 | compiler    | any valid compiler                                              |
 | syntax      | for buffer output                                               |
-| options     | [job options](https://vimhelp.org/channel.txt.html#job-options) |
+| options     | [user job options](1-async.html#h-user-options)                 |
 | errorformat | as vim option                                                   |
 | grepformat  | as vim option                                                   |
 | outfile     | path for the stdout log                                         |

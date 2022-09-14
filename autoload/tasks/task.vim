@@ -1,5 +1,5 @@
 " ========================================================================###
-" Description: Script defining the Task class
+" Description: Script for tasks validation
 " File:        task.vim
 " Author:      Gianmaria Bajo <mg1979@git.gmail.com>
 " License:     MIT
@@ -7,26 +7,44 @@
 " Modified:    sab 21 novembre 2020 08:51:08
 " ========================================================================###
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Script variables
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+let s:ut = tasks#util#init()
+let s:v  = s:ut.Vars
+let s:valid_sections = ['info', 'infoglobal', 'env']
+
+
+""-----------------------------------------------------------------------------
+" Function: tasks#task#new
+"
+" This function receives a parsed section of the configuration file (either
+" a special section or a proper task), and must validate all the parsed fields.
+"
+" @param project: the object of the project the task belongs to
+" @param local:   if it's a local task
+" @param name:    string with the name of the task/special section
+" Returns: the task/section object
+""-----------------------------------------------------------------------------
 function! tasks#task#new(project, local, name) abort
     let t = {}
     let t.validate = function('s:validate_task')
-    let t.local = a:local
+    let t.local = a:local ? v:true : v:false
     let t.fields = {}
     let t.type = s:type(a:name)
     let t.patterns = s:patterns_{t.type}
     let a:project.tasks[a:name] = t
-    let a:project.haslocalcfg = a:local
+    let a:project.haslocalcfg = t.local
     return t
 endfunction
 
 function! s:type(name)
-    return a:name =~ '__\%(glob\)\?info__' ? substitute(a:name, '_', '', 'g') :
-                \ a:name == '__env__' ? 'env' : 'task'
+    let type = substitute(a:name, '^__\|__$', '', 'g')
+    return index(s:valid_sections, type) >= 0 ? type : 'task'
 endfunction
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let s:Task = {}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Validate tasks
@@ -34,14 +52,19 @@ let s:Task = {}
 
 ""
 " Function: s:validate_task (filter function)
+"
+" Special sections (env, info...) will not be considered valid tasks, but they
+" are processed and merged into the project root.
+" This is the validate() filter function used at the end of tasks#parse#do().
+"
 " @param project: the configuration file (local or global) the task belong to
-" @param name:    name of the task (key of the project.tasks element)
-" Returns: true if the task is valid
+" @param name:    name of the task/section (key of the project.tasks element)
+" Returns: true if the task/section is valid
 ""
 function! s:validate_task(project, name) abort dict
     let [p, n, t] = [a:project, a:name, self]
-    if s:is_env(p, n, t)            | return v:false | endif
-    if s:is_info_section(p, n, t)   | return v:false | endif
+    if s:is_env_section(p, n, t)    | return v:false | endif
+    if s:is_spec_section(p, n, t)   | return v:false | endif
     if s:failing_conditions(n)      | return v:false | endif
     if s:no_valid_fields(t.fields)  | return v:false | endif
     if s:failing_fields(t.fields)   | return v:false | endif
@@ -56,16 +79,18 @@ endfunction
 " Special sections
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 ""
-" These are not real tasks, so they will be removed from the tasks dict after
-" they've been found, and their fields will be stored in the root of the
-" project dict. They are:
+" These are not real tasks, so they will not be validated, but their fields
+" will be stored in the root of the project dict, instead. They are:
 "
-"   #info       local to project, it contains informations about the project
+"   #project    local to project, it contains informations about the project,
+"               plus project-specific options
+"   #global     same purpose as #project, but only valid in global configuration
+"               currently there is little use for this, see s:patterns_infoglobal
 "   #env        local to project, it contains environmental variables that will
 "               be set before the command is executed
 ""
 
-function! s:is_env(project, name, task) abort
+function! s:is_env_section(project, name, task) abort
     if a:task.type != 'env'
         return v:false
     endif
@@ -74,12 +99,12 @@ function! s:is_env(project, name, task) abort
 endfunction
 
 
-function! s:is_info_section(project, name, task) abort
+function! s:is_spec_section(project, name, task) abort
     let local = a:project.haslocalcfg
-    if local && a:task.type != 'info' || !local && a:task.type != 'globinfo'
+    if local && a:task.type != 'info' || !local && a:task.type != 'infoglobal'
         return v:false
     endif
-    let info = local ? a:project.info : a:project.globinfo
+    let info = local ? a:project.info : a:project.infoglobal
     call extend(info, a:task.fields)
     return v:true
 endfunction
@@ -239,16 +264,25 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Script variables and task fields patterns
+"   TASK FIELDS PATTERNS
+"
+" The s:patterns_* variables hold valid patterns for each section. If a line
+" contained in a section matches a pattern, it is a valid field.
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-let s:ut = tasks#util#init()
-let s:v  = s:ut.Vars
-
+""
+" The only valid pattern for fields in the #env section are capitalized
+" environmental variables, optionally preceded by @/& modifiers, see:
+" :help tasks-environment
+""
 let s:patterns_env = {
             \ 'envvar': '\C^[@&]\?[A-Z_]\+:\?\ze=',
             \}
 
+""
+" Valid patterns for fields in the #project section.
+" Note: 'options' is unused.
+""
 let s:patterns_info = {
             \ 'name': '^name\ze=',
             \ 'description': '^description\ze=',
@@ -256,10 +290,17 @@ let s:patterns_info = {
             \ 'filerotate': '^filerotate\ze=',
             \}
 
-let s:patterns_globinfo = {
+""
+" Valid patterns for fields in the #global section.
+" Note: 'options' is unused.
+""
+let s:patterns_infoglobal = {
             \ 'options': '^options\ze=',
             \}
 
+""
+" Valid patterns for task fields and their values.
+""
 let s:patterns_task = {
             \ 'command':      '\v^command(:(\w+,?)+)?(\/(\w+,?)+)?\ze\=',
             \ 'cwd':          '^cwd\ze=',
@@ -278,6 +319,11 @@ let s:patterns_task = {
             \ 'ifexists':     '^ifexists\ze=',
             \}
 
+""
+" Valid values for the 'options' field of tasks sections.
+" NOTE: also #project and #global support an 'options' field, but it is
+" currently unused.
+""
 let s:options = [
             \'grep', 'locl', 'append',
             \'focus', 'nojump', 'openqf',
@@ -285,6 +331,10 @@ let s:options = [
             \'writelogs', 'noquit', 'noenv',
             \]
 
+""
+" Once a task line matches a pattern, it can be a valid field, but it must also
+" satisfy a condition, different for every type of field.
+""
 let s:fields = {
             \ 'command':     function('s:validate_command'),
             \ 'cwd':         { k,v -> v =~ '\%(\f\|/\)\+' },
