@@ -36,8 +36,14 @@ command! -nargs=1 -bang Async     call async#cmd(<q-args>, 'headless', {'writelo
 command! -bang          StopJobs  call async#stop(0, <bang>0)
 command! -bang          Jobs      call async#list(<bang>0)
 
-command! -nargs=? -bang Make      call async#qfix(<q-args>, {'nojump': <bang>0})
-command! -nargs=? -bang LMake     call async#qfix(<q-args>, {'nojump': <bang>0, 'locl': 1})
+" From https://dev.to/pbnj/how-to-get-make-target-tab-completion-in-vim-4mj1
+function! s:MakeCompletion(A,L,P) abort
+    let l:targets = systemlist('make -qp | awk -F'':'' ''/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}'' | grep -v Makefile | sort -u')
+    return filter(l:targets, 'v:val =~ "^' . a:A . '"')
+endfunction
+
+command! -nargs=? -bang -complete=customlist,s:MakeCompletion Make      call async#qfix(<q-args>, {'nojump': <bang>0})
+command! -nargs=? -bang -complete=customlist,s:MakeCompletion LMake     call async#qfix(<q-args>, {'nojump': <bang>0, 'locl': 1})
 
 command! -nargs=1 -bang -complete=compiler Compiler  call async#compiler(<q-args>, {'nojump': <bang>0})
 command! -nargs=1 -bang -complete=compiler LCompiler call async#compiler(<q-args>, {'nojump': <bang>0, 'locl': 1})
