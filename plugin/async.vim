@@ -36,11 +36,34 @@ command! -nargs=1 -bang Async     call async#cmd(<q-args>, 'headless', {'writelo
 command! -bang          StopJobs  call async#stop(0, <bang>0)
 command! -bang          Jobs      call async#list(<bang>0)
 
-" From https://dev.to/pbnj/how-to-get-make-target-tab-completion-in-vim-4mj1
-function! s:MakeCompletion(A,L,P) abort
-    let l:targets = systemlist('make -qp | awk -F'':'' ''/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}'' | grep -v Makefile | sort -u')
-    return filter(l:targets, 'v:val =~ "^' . a:A . '"')
-endfunction
+if executable('awk')
+  " From https://dev.to/pbnj/how-to-get-make-target-tab-completion-in-vim-4mj1
+  function! s:MakeCompletion(ArgLead, CmdLine, CursorPos) abort
+    let l:targets = systemlist("make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1, targets, / /); for (target in targets) if (targets[target] != \"Makefile\" && !seen[targets[target]]++) print targets[target]}'")
+    return filter(l:targets, 'v:val =~ "^' . a:ArgLead . '"')
+  endfunction
+else
+  " From https://github.com/jiangyinzuo/vimrc/commit/29a7f3f4686c4ea8246c2f149f698fd01d7cdba4
+  function! s:MakeCompletion(ArgLead, CmdLine, CursorPos) abort
+	  let l:makefiles = glob('[Mm]akefile', 1, 1) + glob('GNUmakefile', 1, 1) +
+          \ glob('*.mk', 1, 1)
+	  let l:makefile = l:makefiles[0]
+	  let l:lines = readfile(l:makefile)
+	  let l:targets = []
+
+	  for line in l:lines
+		  if line =~ '^\w\+:'
+			  let target = matchstr(line, '^\w\+')
+			  if target =~ '^' . a:ArgLead
+				  call add(l:targets, target)
+			  endif
+		  endif
+	  endfor
+
+	  return uniq(l:targets)
+  endfunction
+endif
+
 
 command! -nargs=? -bang -complete=customlist,s:MakeCompletion Make      call async#qfix(<q-args>, {'nojump': <bang>0})
 command! -nargs=? -bang -complete=customlist,s:MakeCompletion LMake     call async#qfix(<q-args>, {'nojump': <bang>0, 'locl': 1})
