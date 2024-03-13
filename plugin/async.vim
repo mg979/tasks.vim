@@ -35,19 +35,6 @@ command! -nargs=1 -bang Async     call async#cmd(<q-args>, 'headless', {'writelo
 
 command! -bang          StopJobs  call async#stop(0, <bang>0)
 command! -bang          Jobs      call async#list(<bang>0)
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Command-line completion for ":Make"
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-if executable('awk')
-  let s:MakeCompletionCmd =  "make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1, targets, / /); for (target in targets) if (targets[target] != \"Makefile\" && !seen[targets[target]]++) print targets[target]}'"
-
-  if has('win32') && executable('sh')
-    let s:MakeCompletionCmd = 'sh -c ' .. shellescape(s:MakeCompletionCmd)
-  else
-    unlet s:MakeCompletionCmd
-  endif
-endif
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Command-line completion for ":Make"
@@ -89,26 +76,26 @@ else
     if &makeprg !=? 'make'
       return []
     endif
-	  let makefiles = glob('[Mm]akefile', 1, 1) + glob('GNUmakefile', 1, 1) +
+    let makefiles = glob('[Mm]akefile', 1, 1) + glob('GNUmakefile', 1, 1) +
           \ glob('*.mk', 1, 1)
     if !empty(makefiles) && filereadable(makefiles[0])
-	    let makefile = makefiles[0]
-	  else
+      let makefile = makefiles[0]
+    else
       return []
-	  endif
-	  let lines = readfile(makefile)
-	  let targets = []
+    endif
+    let lines = readfile(makefile)
+    let targets = []
 
-	  for line in lines
-		  if line =~ '^\w\+:'
-			  let target = matchstr(line, '^\w\+')
-			  if target =~ '^' . a:ArgLead
-				  call add(targets, target)
-			  endif
-		  endif
-	  endfor
+    for line in lines
+      if line =~ '^\w\+:'
+        let target = matchstr(line, '^\w\+')
+        if target =~ '^' . a:ArgLead
+          call add(targets, target)
+        endif
+      endif
+    endfor
 
-	  return uniq(targets)
+    return uniq(targets)
   endfunction
 endif
 
