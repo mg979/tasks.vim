@@ -47,8 +47,8 @@ else
     let targets = []
 
     for line in lines
-      if line =~ '^\w\+:'
-        let target = matchstr(line, '^\w\+')
+      if line =~ '^[a-zA-Z0-9._-]\+:'
+        let target = matchstr(line, '^[a-zA-Z0-9._-]\+')
         if target =~ '^' .. a:ArgLead
           call add(targets, target)
         endif
